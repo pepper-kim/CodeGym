@@ -48,6 +48,15 @@ function displayBoard(board) {
  * @returns {[string, string]} [플레이어1의 마커, 플레이어2의 마커]
  */
 function chooseMarker() {
+  let player1Marker = "";
+  while (player1Marker !== "X" && player1Marker !== "O") {
+    player1Marker = prompt(
+      "플레이어 1, 사용할 마커를 선택하세요 (X 또는 O): "
+    ).toUpperCase();
+  }
+
+  let player2Marker = player1Marker === "X" ? "O" : "X";
+  return [player1Marker, player2Marker]
 }
 
 /**
@@ -59,7 +68,9 @@ function chooseMarker() {
  * @returns {string} '플레이어 1' 또는 '플레이어 2'
  */
 function chooseFirstPlayer() {
+  return Math.random() < 0.5 ? "플레이어 1" : "플레이어 2";
 }
+
 
 /**
  * 보드의 지정한 위치에 플레이어의 마커를 놓습니다.
@@ -70,6 +81,7 @@ function chooseFirstPlayer() {
  * @returns {void}
  */
 function placeMarker(board, marker, position) {
+  board[position] = marker;
 }
 
 /**
@@ -80,6 +92,7 @@ function placeMarker(board, marker, position) {
  * @returns {boolean} 해당 위치가 비어 있으면 true, 아니면 false
  */
 function spaceCheck(board, position) {
+  return board[position] === " ";
 }
 
 /**
@@ -93,6 +106,13 @@ function spaceCheck(board, position) {
  * @returns {number} 플레이어가 선택한 유효한 위치 (1 ~ 9)
  */
 function playerChoice(board) {
+  let position = 0;
+  const validPositions = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  while (!(validPositions.includes(position) && spaceCheck(board, position))) {
+    position = Number(prompt("1부터 9 사이의 숫자를 입력 해주세요: "));
+  }
+
+  return position
 }
 
 /**
@@ -105,6 +125,15 @@ function playerChoice(board) {
  * @returns {boolean} 가로 줄 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkRows(board, marker) {
+  if (board[7] === marker && board[8] === marker && board[9] === marker) {
+    return true
+  } else if (board[4] === marker && board[5] === marker && board[6] === marker) {
+    return true
+  } else if (board[1] === marker && board[2] === marker && board[3] === marker) {
+    return true
+  }
+
+  return false;
 }
 
 /**
@@ -117,6 +146,15 @@ function checkRows(board, marker) {
  * @returns {boolean} 세로 줄 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkCols(board, marker) {
+  if (
+    (board[7] === marker && board[4] === marker && board[1] === marker) ||
+    (board[8] === marker && board[5] === marker && board[2] === marker) ||
+    (board[9] === marker && board[6] === marker && board[3] === marker)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -129,6 +167,14 @@ function checkCols(board, marker) {
  * @returns {boolean} 대각선 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkDiags(board, marker) {
+  if (
+    (board[1] === marker && board[5] === marker && board[9] === marker) ||
+    (board[3] === marker && board[5] === marker && board[7] === marker)
+  ) {
+    return true
+  }
+
+  return false;
 }
 
 /**
@@ -142,6 +188,11 @@ function checkDiags(board, marker) {
  * @returns {boolean} 승리 조건을 만족하면 true, 아니면 false
  */
 function checkWin(board, marker) {
+  if (checkRows(board, marker) || checkCols(board, marker) || checkDiags(board, marker)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -155,6 +206,7 @@ function checkWin(board, marker) {
  * @returns {boolean} 보드가 가득 차 있으면 true, 아니면 false
  */
 function fullBoardCheck(board) {
+  return !board.includes(" ")
 }
 
 /**
@@ -167,10 +219,47 @@ function fullBoardCheck(board) {
  * 1. 보드 초기화
  * 2. 마커 선택 및 선공 결정
  * 3. 플레이어 턴 진행 (Player 1과 Player 2 번갈아가며)
+ *  1) 첫 플레이어 응답 받기
  * 4. 매 턴마다 승리 여부 및 무승부 체크
  * 5. 게임 종료 후 재시작 여부 확인
  *
  * @returns {void}
  */
 function runGame() {
+  let runGame = true;
+  while (runGame) {
+    let gameStatus = "플레이"
+    let board = createBoard();
+    displayBoard(board);
+
+    let [player1Marker, player2Marker] = chooseMarker(board);
+    console.log(`플레이어 1은 ${player1Marker}, 플레이어 2는 ${player2Marker} 마커를 가지고 플레이합니다.`);
+
+    let firstPlayer = chooseFirstPlayer();
+    let playerMarker = firstPlayer === "플레이어 1" ? player1Marker : player2Marker;
+    console.log(`선공 플레이어는 ${firstPlayer}입니다.`);
+
+    while (gameStatus === "플레이") {
+      position = playerChoice(board);
+      placeMarker(board, playerMarker, position);
+      displayBoard(board);
+      if (checkWin(board, playerMarker)) {
+        gameStatus = playerMarker === player1Marker ? "플레이어 1 승리" : "플레이어 2 승리";
+      } else if (fullBoardCheck(board)) {
+        gameStatus = "무승부";
+      } else {
+        playerMarker = playerMarker === player1Marker ? player2Marker : player1Marker;
+      }
+    }
+
+    console.log(`게임 결과는 ${gameStatus}입니다.`)
+    let restart = ""
+    while (restart !== "Y" && restart !== "N") {
+      restart = prompt("재시작 하시겠습니까? Y or N : ").toUpperCase();
+      if (restart === "N") {
+        runGame = false;
+        console("게임을 종료합니다.")
+      }
+    }
+  }
 }
