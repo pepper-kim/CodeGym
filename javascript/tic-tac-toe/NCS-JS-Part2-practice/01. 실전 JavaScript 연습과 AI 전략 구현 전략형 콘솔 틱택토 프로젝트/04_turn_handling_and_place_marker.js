@@ -92,7 +92,7 @@ function placeMarker(board, marker, position) {
  * @returns {boolean} 해당 위치가 비어 있으면 true, 아니면 false
  */
 function spaceCheck(board, position) {
-  return board[position] === "";
+  return board[position] === " ";
 }
 
 /**
@@ -106,25 +106,11 @@ function spaceCheck(board, position) {
  * @returns {number} 플레이어가 선택한 유효한 위치 (1 ~ 9)
  */
 function playerChoice(board) {
-  let position = "";
-  while (!checkPositionAvailable(board, position)) {
-    position = prompt("1부터 9 사이의 숫자를 입력 해주세요: ");
-  }
-  
-  return Number(position)
-}
-
-function checkPositionAvailable(board, position) {
-  if (Number.isNaN(position)) {
-    console.log("숫자를 입력해주세요!");
-    return false;
-  } else if (!(1 <= Number(position) && Number(position) <= 9)) {
-    console.log("1부터 9 사이의 숫자를 입력 해주세요!")
-    return false;
-  } else if (spaceCheck(board)) {
-    console.log("비어 있는 위치를 입력 해주세요.")
-    return false;
+  let position = 0;
+  const validPositions = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  while (!(validPositions.includes(position) && spaceCheck(board, position))) {
+    position = Number(prompt("1부터 9 사이의 숫자를 입력 해주세요: "));
   }
 
-  return true;
+  return position
 }

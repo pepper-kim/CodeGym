@@ -49,7 +49,6 @@ function displayBoard(board) {
  */
 function chooseMarker() {
   let player1Marker = "";
-
   while (player1Marker !== "X" && player1Marker !== "O") {
     player1Marker = prompt(
       "플레이어 1, 사용할 마커를 선택하세요 (X 또는 O): "
@@ -57,7 +56,7 @@ function chooseMarker() {
   }
 
   let player2Marker = player1Marker === "X" ? "O" : "X";
-  return [player1Marker, player2Marker];
+  return [player1Marker, player2Marker]
 }
 
 /**
@@ -69,7 +68,9 @@ function chooseMarker() {
  * @returns {string} '플레이어 1' 또는 '플레이어 2'
  */
 function chooseFirstPlayer() {
+  return Math.random() < 0.5 ? "플레이어 1" : "플레이어 2";
 }
+
 
 /**
  * 보드의 지정한 위치에 플레이어의 마커를 놓습니다.
@@ -80,6 +81,7 @@ function chooseFirstPlayer() {
  * @returns {void}
  */
 function placeMarker(board, marker, position) {
+  board[position] = marker;
 }
 
 /**
@@ -90,6 +92,7 @@ function placeMarker(board, marker, position) {
  * @returns {boolean} 해당 위치가 비어 있으면 true, 아니면 false
  */
 function spaceCheck(board, position) {
+  return board[position] === " ";
 }
 
 /**
@@ -103,7 +106,13 @@ function spaceCheck(board, position) {
  * @returns {number} 플레이어가 선택한 유효한 위치 (1 ~ 9)
  */
 function playerChoice(board) {
-  
+  let position = 0;
+  const validPositions = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  while (!(validPositions.includes(position) && spaceCheck(board, position))) {
+    position = Number(prompt("1부터 9 사이의 숫자를 입력 해주세요: "));
+  }
+
+  return position
 }
 
 /**
@@ -116,6 +125,15 @@ function playerChoice(board) {
  * @returns {boolean} 가로 줄 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkRows(board, marker) {
+  if (board[7] === marker && board[8] === marker && board[9] === marker) {
+    return true
+  } else if (board[4] === marker && board[5] === marker && board[6] === marker) {
+    return true
+  } else if (board[1] === marker && board[2] === marker && board[3] === marker) {
+    return true
+  }
+
+  return false;
 }
 
 /**
@@ -128,6 +146,15 @@ function checkRows(board, marker) {
  * @returns {boolean} 세로 줄 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkCols(board, marker) {
+  if (
+    (board[7] === marker && board[4] === marker && board[1] === marker) ||
+    (board[8] === marker && board[5] === marker && board[2] === marker) ||
+    (board[9] === marker && board[6] === marker && board[3] === marker)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -140,6 +167,14 @@ function checkCols(board, marker) {
  * @returns {boolean} 대각선 중 하나가 같은 마커로 채워져 있으면 true
  */
 function checkDiags(board, marker) {
+  if (
+    (board[1] === marker && board[5] === marker && board[9] === marker) ||
+    (board[3] === marker && board[5] === marker && board[7] === marker)
+  ) {
+    return true
+  }
+
+  return false;
 }
 
 /**
@@ -153,6 +188,11 @@ function checkDiags(board, marker) {
  * @returns {boolean} 승리 조건을 만족하면 true, 아니면 false
  */
 function checkWin(board, marker) {
+  if (checkRows(board, marker) || checkCols(board, marker) || checkDiags(board, marker)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -166,6 +206,77 @@ function checkWin(board, marker) {
  * @returns {boolean} 보드가 가득 차 있으면 true, 아니면 false
  */
 function fullBoardCheck(board) {
+  for (let i = 1; i < 10; i++) {
+    if (board[i] === " ") {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * 틱택토 게임을 실행하는 메인 함수입니다.
+ *
+ * - 플레이어 마커 선택, 선공 결정, 보드 생성, 턴 진행, 승리/무승부 판정까지 모든 흐름을 포함합니다.
+ * - 게임이 끝난 뒤에는 다시 시작할지 여부를 사용자에게 묻고, 반복 여부를 결정합니다.
+ *
+ * 주요 흐름:
+ * 1. 보드 초기화
+ * 2. 마커 선택 및 선공 결정
+ * 3. 플레이어 턴 진행 (Player 1과 Player 2 번갈아가며)
+ *  1) 첫 플레이어 응답 받기
+ * 4. 매 턴마다 승리 여부 및 무승부 체크
+ * 5. 게임 종료 후 재시작 여부 확인
+ *
+ * @returns {void}
+ */
+function runGame() {
+  let runGame = true;
+  while (runGame) {
+    let gameStatus = ""
+    let board = createBoard();
+    displayBoard(board);
+
+    let [player1Marker, player2Marker] = chooseMarker(board);
+    console.log(`플레이어 1은 ${player1Marker}, 플레이어 2는 ${player2Marker} 마커를 가지고 플레이합니다.`);
+
+    let firstPlayer = chooseFirstPlayer();
+    let playerMarker = firstPlayer === "플레이어 1" ? player1Marker : player2Marker;
+    console.log(`선공 플레이어는 ${firstPlayer}입니다. ${playerMarker} 마커를 가지고 게임을 시작합니다.`)
+
+    let continues = ""
+    while (continues !== 'Y' && continues !== 'N') {
+      continues = prompt("게임을 계속 진행 하시겠습니까? (Y/N) : ").toUpperCase();
+      if (continues === 'Y') {
+        gameStatus = "플레이"
+      } else if (continues === 'N') {
+        break;
+      }
+    }
+
+    while (gameStatus === "플레이") {
+      let position = playerMarker === player2Marker ? getStrategicPosition(board, player2Marker, player1Marker) : playerChoice(board);
+      placeMarker(board, playerMarker, position);
+      displayBoard(board);
+      if (checkWin(board, playerMarker)) {
+        gameStatus = playerMarker === player1Marker ? "플레이어 1 승리" : "플레이어 2 승리";
+      } else if (fullBoardCheck(board)) {
+        gameStatus = "무승부";
+      } else {
+        playerMarker = playerMarker === player1Marker ? player2Marker : player1Marker;
+      }
+    }
+
+    console.log(`게임 결과는 ${gameStatus}입니다.`)
+    let restart = ""
+    while (restart !== "Y" && restart !== "N") {
+      restart = prompt("재시작 하시겠습니까? Y or N : ").toUpperCase();
+      if (restart === "N") {
+        runGame = false;
+        console("게임을 종료합니다.")
+      }
+    }
+  }
 }
 
 /**
@@ -179,6 +290,19 @@ function fullBoardCheck(board) {
  * @returns {number} 랜덤으로 선택된 빈 칸의 위치 (1 ~ 9)
  */
 function getRandomEmptyPosition(board) {
+  let emptyPositions = [];
+  for (let i = 1; i < 10; i++) {
+    if (board[i] === " ") {
+      emptyPositions.push(i);
+    }
+  }
+
+  const idx = Math.floor(Math.random() * emptyPositions.length);
+  return emptyPositions[idx];
+}
+
+function undoPlacing(board, position) {
+  board[position] = " ";
 }
 
 /**
@@ -193,19 +317,59 @@ function getRandomEmptyPosition(board) {
  * @returns {number} 컴퓨터가 선택한 위치 (이길 수 있는 자리가 우선, 없으면 랜덤)
  */
 function getSmartPosition(board, marker) {
+  for (let p = 1; p < 10; p++) {
+    if (spaceCheck(board, p)) {
+      placeMarker(board, marker, p);
+      if (checkWin(board, marker)) {
+        undoPlacing(board, p)
+        return p;
+      }
+
+      undoPlacing(board, p);
+    }
+  }
+
+  return getRandomEmptyPosition(board);
 }
 
-/**
- * 현재 차례인 마커(marker)가 놓일 경우 이길 수 있는 자리를 먼저 찾아 반환합니다.
- *
- * - 보드의 모든 빈 칸을 하나씩 시뮬레이션하면서 해당 칸에 마커를 놓아봅니다.
- * - 해당 위치에 마커를 놓았을 때 승리 조건을 만족하는 경우 해당 위치를 반환합니다.
- * - 이길 수 있는 자리가 없다면, getRandomEmptyPosition()을 호출하여 랜덤 위치를 선택합니다.
- *
- * @param {string[]} board - 현재 보드 배열 (인덱스 1~9 사용)
- * @param {string} marker - 컴퓨터가 사용하는 마커 ('X' 또는 'O')
- * @returns {number} 컴퓨터가 선택한 위치 (이길 수 있는 자리가 우선, 없으면 랜덤)
- */
+function getWinnablePosition(board, marker) {
+  for (let p = 1; p < 10; p++) {
+    if (spaceCheck(board, p)) {
+      placeMarker(board, marker, p);
+      if (checkWin(board, marker)) {
+        undoPlacing(board, p)
+        return p;
+      }
+
+      undoPlacing(board, p);
+    }
+  }
+
+  return "";
+}
+
+function getForkPosition(board, computerMarker, playerMarker) {
+  for (let p = 1; p < 10; p++) {
+    if (spaceCheck(board, p)) {
+      // 상대가 한쪽을 막고
+      let gonnableBlockedPosition = getWinnablePosition(board, computerMarker);
+      if (gonnableBlockedPosition === "") {
+        continue;
+      }
+      placeMarker(board, playerMarker, gonnableBlockedPosition);
+
+      // 내가 한쪽을 냈을 때 무조건 이기는 수
+      gonnableBlockedPosition = getWinnablePosition(board, computerMarker)
+      if (gonnableBlockedPosition === "") {
+        continue;
+      }
+
+      return gonnableBlockedPosition;
+    }
+  }
+
+  return "";
+}
 
 /**
  * 컴퓨터의 전략적 위치 선택 함수
@@ -224,24 +388,31 @@ function getSmartPosition(board, marker) {
  * @returns {number} 선택한 위치 (1~9)
  */
 function getStrategicPosition(board, computerMarker, playerMarker) {
-}
+  const computerWinnablePosition = getWinnablePosition(board, computerMarker);
+  if (computerWinnablePosition !== "") {
+    return computerWinnablePosition;
+  }
 
-/**
- * 틱택토 게임을 실행하는 메인 함수입니다.
- *
- * - 플레이어 마커 선택, 선공 결정, 보드 생성, 턴 진행, 승리/무승부 판정까지 모든 흐름을 포함합니다.
- * - 게임이 끝난 뒤에는 다시 시작할지 여부를 사용자에게 묻고, 반복 여부를 결정합니다.
- *
- * 주요 흐름:
- * 1. 보드 초기화
- * 2. 마커 선택 및 선공 결정
- * 3. 플레이어 턴 진행 (Player 1과 Player 2 번갈아가며)
- * 4. 매 턴마다 승리 여부 및 무승부 체크
- * 5. 게임 종료 후 재시작 여부 확인
- *
- * @returns {void}
- */
+  const playerWinnablePosition = getWinnablePosition(board, playerMarker);
+  if (playerWinnablePosition !== "") {
+    return playerWinnablePosition;
+  }
 
-function runGame() {
-  
+  const forkWinnablePosition = getForkPosition(board, computerMarker);
+  if (forkWinnablePosition !== "") {
+    return forkWinnablePosition;
+  }
+
+  if (board[5] === " ") {
+    return 5;
+  }
+
+  const cornerPos = [1, 3, 5, 7]
+  for (let p of cornerPos) {
+    if (board[p] === " ") {
+      return p;
+    }
+  }
+
+  return getRandomEmptyPosition(board);
 }
