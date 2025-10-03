@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    .box-container {
+      display:flex
+    }
+    .box {
+      width: 100px;
+      height: 100px;
+      border: 2px solid black;
+      background: rgba(255, 255, 0, 0.7);
+      transition: 1s cubic-bezier(.27,1.39,.82,1.93);
+      transition-delay: 1s;
+    }
+    .box:hover {
+      /* width: 200px; height: 200px; */
+      transform: scale(1.5);
+      /* transform: rotate(30deg); */
+      /* transform: skew(30deg); */
+      /* transform: skewY(30deg); */
+      /* transform: translate(30px, 10px); */
+      /* transform: translateY(10px); */
+      /* transform-origin: right bottom; */
+      transform-origin: 30% 70%;
+    }
+  </style>
+</head>
+<body>
+  <h1>css transform</h1>
+  <p> Lorem ipsum dolor sit amet consectetur adipisicing elit. Non nihil deserunt est dolore, perferendis consequatur sit eveniet, rem explicabo veritatis laboriosam maiores praesentium nostrum similique? A consequuntur reiciendis cupiditate perferendis sequi inventore soluta officia, voluptatem ad doloremque labore quos quas, veniam nesciunt et laudantium consectetur. Reprehenderit excepturi, omnis nulla, debitis accusamus, sapiente placeat porro accusantium temporibus error architecto odit iure laudantium. Sequi ducimus numquam facere est optio esse itaque alias suscipit, laudantium deserunt deleniti voluptatum porro rerum laboriosam non. Vero vel, sequi non, eum quae dicta totam possimus voluptas voluptates praesentium vitae ab, perferendis est ipsum sapiente nesciunt aperiam excepturi.</p>
+
+  <div class="box-container">
+    <div class="box">A</div>
+    <div class="box">B</div>
+    <div class="box">C</div>
+    <div class="box">D</div>
+    <div class="box">E</div>
+  </div>
+  <p> Lorem ipsum dolor sit amet consectetur adipisicing elit. Asperiores porro similique temporibus veritatis sint nemo ex itaque. Et in vel rem laborum doloremque suscipit aspernatur harum similique aliquam exercitationem voluptatibus, eveniet veniam iste perspiciatis vitae ducimus corrupti unde sed ipsum quia dolorum eligendi nemo voluptatum tempora? Aspernatur corrupti aut vel quaerat. Consequuntur facilis ipsam excepturi perspiciatis enim mollitia quidem provident dolor cupiditate obcaecati! Repellendus, ad? Sequi voluptas dolor, atque fuga hic accusamus provident natus impedit eveniet modi placeat ex dicta saepe sunt perspiciatis consequuntur accusantium excepturi temporibus laudantium, doloribus, veniam sapiente eum molestias. Ad dolorem nulla in quam quisquam cupiditate!</p>
+</body>
+</html>
