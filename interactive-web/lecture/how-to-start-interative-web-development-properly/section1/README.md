@@ -34,3 +34,22 @@
       }
     }
   ```
+### animation-direction
+- 애니메이션이 앞, 뒤, 번갈아 실행되는지 결정하는 키워드
+- 값
+  - alternate : 번갈아 실행됨
+  - reverse : 마지막에서 시작함
+  - alternate-reverse : 마지막에서 시작하고 번갈아 실행됨.
+  - etc..
+
+### animation-fill-mode
+- CSS 애니메이션 실행 전 후에 스타일을 어떻게 적용할지 지정할 수 있음. 
+- 값
+  - forwards : 실행 후 마지막 keyframe 값에서 멈춤..
+  - etc..
+
+### animation-play-state
+- 애니메이션이 실행될지 여부를 결정할 수 있음
+- 값
+  - running
+  - paused
