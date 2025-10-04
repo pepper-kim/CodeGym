@@ -53,3 +53,7 @@
 - 값
   - running
   - paused
+
+### background
+- 배경 설정할 때 사용되는 키워드들을 한번에 설정할 수 있음.
+- ex. background: url('images/sprite_spaceship.png') no-repeat 0 0 / auto 150px;
