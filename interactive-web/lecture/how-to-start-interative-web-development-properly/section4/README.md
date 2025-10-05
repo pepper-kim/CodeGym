@@ -46,3 +46,14 @@ column과 축이 같되, 정렬의 시작을 반대로 설정.
 - center : 중앙 정렬.
 - start : 시작 정렬.
 - end : 끝 정렬.
+
+## flex-*
+### flex-grow
+- flex container 내부의 남은 공간 중에 flex item(자식 요소)이 할당 받을 수 있는 공간의 비율을 나타냄.
+- flex container에 `display: flex`를 설정하면 flex item의 content가 차지하고 남은 공간들이 생김. flex-grow를 이용하여 각 flex item들이 어떻게 나눠가질지 결정할 수 있음.
+### flex-basis
+- flex item이 기본적으로 차지하려는 크기.
+- flex container 안의 남는 공간을 flex item들에 나눠주기 전에 각 flex item들이 차지하는 크기. 
+### flex-shrink
+- flex container 안의 공간이 부족할 때 flex item이 줄어드는 비율.
+- 기본 값은 1임. 즉 줄어들 수 있다는 뜻. 2가 된다면 줄어들어야 하는 상황에 0.5배 크기로 줄어듦.
