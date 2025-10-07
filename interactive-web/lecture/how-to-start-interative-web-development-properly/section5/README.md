@@ -39,9 +39,8 @@ Document Object Model은 web document와 상호작용할 수 있는 인터페이
 
 ### Data attribute
 - HTML의 특정 요소에 custom attribute를 설정하고 싶을 떄 사용하는 표준 스펙.
-- HTML과 DOM 사이에서 개별 요소들의 값을 script를 이용하여 주고 받고 싶을 때 사용함. 
-- 즉, HTML 내 특정 요소와 관련된 데이터이지만 시각화할 필요는 없을 때 Data attribute를 이용함.
-
+- HTML과 DOM 사이에서 개별 요소들의 값을 script를 이용하여 주고 받고 싶을 때 사용함. 즉, HTML 내 특정 요소와 관련된 데이터이지만 시각화할 필요는 없을 때 Data attribute를 이용함.
+- element.getAttribute를 사용할 수도 있고, dataset 속성을 활용할 수도 있음. dataset은 custom data attribute(`data-*`)에 접근 할 수 있는 map of strings(`DOMStringMap`)임. 이를 이용하여 각각의 `data-*` 속성에 접근할 수 있음. 
 아래와 같은 html이 있을 때,
 ```
 <main>
