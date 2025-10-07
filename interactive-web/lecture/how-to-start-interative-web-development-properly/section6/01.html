@@ -28,7 +28,6 @@
             border: 10px dashed red;
         }
     </style>
-    <script defer src="ex.js"></script>
 </head>
 <body>
     <div class="characters">
@@ -46,4 +45,16 @@
         </div>
     </div>
 </body>
+<script>
+    {
+        const ilbuni = document.querySelector('.ilbuni.c');
+
+        function clickIlbuniHanlder(e) {
+            ilbuni.classList.toggle('special');
+            console.log(e);
+        }
+
+        ilbuni.addEventListener('click', clickIlbuniHanlder);
+    }
+</script>
 </html>

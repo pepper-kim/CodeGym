@@ -50,3 +50,32 @@ https://ko.javascript.info/script-async-defer
 - async가 붙은 스크립트는 페이지와 완전 독립적으로 동작함. 스크립트를 비동기적으로 다운 받은 후 HTML 페이지가 다 파싱 되기 전이라도 스크립트를 실행 함.
 - 페이지의 DOM과 관련되지 않은 코드를 실행할 때(ex. stats.js) 사용함.
 - async 스크립트를 다운 받을 때는 HTML 파싱을 방해하진 않지만, 실행할 때는 HTML 파싱이 멈춤. 다만 스크립트 실행 시간이 짧고, 브라우저 랜더링은 동시에 진행되기에 문제 없음
+
+## Event
+https://developer.mozilla.org/ko/docs/Web/API/Event
+- `Event` 인터페이스는 DOM에서 발생한 이벤트를 나타냄. 하드웨어를 이용한 동작(ex. MouseEvent)으로 인한 이벤트가 기본적으로 제공되고, 비즈니스 로직을 처리하기 위한 이벤트도 포함한다.
+- 이벤트들은 `addEventListener`를 통해 특정 이벤트를 subscribe 할 수 있고, `dispatchEvent`를 이용하여 이벤트를 발행할 수도 있다.
+
+아래와 같은 스크립트를 실행 시
+```
+<script>
+{
+    const ilbuni = document.querySelector('.ilbuni.c');
+
+    function clickIlbuniHanlder(e) {
+        ilbuni.classList.toggle('special');
+        console.log(e);
+    }
+
+    ilbuni.addEventListener('click', clickIlbuniHanlder);
+}
+</script>
+```
+
+Pointer event를 얻을 수 있다.
+https://developer.mozilla.org/ko/docs/Web/API/PointerEvent
+![Pointer event](./images/pointer_event.png)
+
+
+Pointer 이벤트는 아래와 같은 상속 구조를 가지고 있다.
+- Event <-- UIEvent <-- MouseEvent <-- PointerEvent
