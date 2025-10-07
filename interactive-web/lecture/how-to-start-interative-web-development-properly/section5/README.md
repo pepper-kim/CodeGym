@@ -36,3 +36,40 @@ Document Object Model은 web document와 상호작용할 수 있는 인터페이
 ### css selector란
 - 특정 css 규칙들을 따르는 요소들을 선택하기 위한 패턴을 정의한 것.
 - ex. class-selector: `.class-name`, id-selector: `#id`
+
+### Data attribute
+- HTML의 특정 요소에 custom attribute를 설정하고 싶을 떄 사용하는 표준 스펙.
+- HTML과 DOM 사이에서 개별 요소들의 값을 script를 이용하여 주고 받고 싶을 때 사용함. 
+- 즉, HTML 내 특정 요소와 관련된 데이터이지만 시각화할 필요는 없을 때 Data attribute를 이용함.
+
+아래와 같은 html이 있을 때,
+```
+<main>
+  <article
+    id="electronic-cars"
+    data-columns="3"
+    data-index-number="12345"
+    >
+  </article>
+
+  <article
+    id="solar-cars"
+    data-columns="3"
+    data-index-number="12346"
+    >
+  </article>
+</main>
+```
+
+다음 코드는 "3"과 "12345"를 출력한다.
+```
+const article = document.querySelector("#electronic-cars");
+
+// dataset을 이용
+console.log(article.dataset.columns);
+console.log(article.dataset.indexNumber);
+
+// getAttribute(..) 메소드 활용
+console.log(article.getAttribute('data-columns'));
+console.log(article.getAttribute('data-index-number'));
+```
