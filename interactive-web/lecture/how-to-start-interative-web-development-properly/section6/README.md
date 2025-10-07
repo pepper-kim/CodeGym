@@ -13,6 +13,8 @@
 - EventTarget.dispatchEvent();
 
 ## HTML 문서 생명주기 관련 주요 이벤트
+https://ko.javascript.info/onload-ondomcontentloaded
+
 ### `DOMContentLoaded`
 - 브라우저가 HTML 문서를 다 읽고 DOM 트리를 완성하는 즉시 발생. 이미지 파일 및 스크립트 등 기타 지원은 기다리지 않음.
 - DOM 요소를 접근해야 하지만 이미지 파일 등은 기다릴 필요 없을 떄 사용.
@@ -22,3 +24,29 @@
 ### `beforeunload`/`unload`
 - 사용자가 페이지를 떠날 때 발생.
 - 사용자가 떠나기 전 미리 저장 알람을 하거나 방문 통계 등을 계산할 때 사용.
+
+## defer & async
+https://ko.javascript.info/script-async-defer
+브라우저는 html을 읽다가`<script>`를 만나면 `src`를 다운 받고 실행 해야 하므로 멈춤. 이 시간이 길면 페이지 로딩이 느려짐. defer과 async는 스크립트 다운을 백그라운드에서 실행하고 실행을 뒤로 미룰 수 있게 함. 즉 스크립트를 다운로드 하는 동안 html 파싱이 멈추지 않음. 
+
+```
+<html>
+<head>
+  ..스크립트 앞 컨텐츠
+  <script src="https://content.....">
+  </script>
+</head>
+<body>
+  ...스크립트 뒤 컨텐츠
+</body>
+</html>
+```
+
+### defer
+- `defer`를 사용하면 `src`를 백그라운드에서 다운로드 함. 그리고 DOM 생성이 끝난 후 `DOMContentedLoaded` 이벤트가 발행되기 직전에 스크립트를 실행.
+- 비동기로 스크립트를 다운 받고, 해당 스크립트가 이 페이지의 DOM 요소와 관련 있을 경우 `defer`를 사용함.
+
+### async
+- async가 붙은 스크립트는 페이지와 완전 독립적으로 동작함. 스크립트를 비동기적으로 다운 받은 후 HTML 페이지가 다 파싱 되기 전이라도 스크립트를 실행 함.
+- 페이지의 DOM과 관련되지 않은 코드를 실행할 때(ex. stats.js) 사용함.
+- async 스크립트를 다운 받을 때는 HTML 파싱을 방해하진 않지만, 실행할 때는 HTML 파싱이 멈춤. 다만 스크립트 실행 시간이 짧고, 브라우저 랜더링은 동시에 진행되기에 문제 없음
