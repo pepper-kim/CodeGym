@@ -100,19 +100,29 @@
       const stage = document.querySelector('.stage');
       let openedDoor;
 
+      function activate(door) {
+        door.classList.add('door-opened');
+        openedDoor = door;
+      }
+
+      function inActivate(element) {
+        element.classList.remove('door-opened');
+      }
+
       function doorHandler(e) {
         if (openedDoor) {
-          openedDoor.classList.remove('door-opened');
+          inActivate(openedDoor);
         }
 
         const door = e.target.closest('.door');
         if (door) {
-          door.classList.add('door-opened');
-          openedDoor = door;
+          activate(door);
         }
       }
 
       stage.addEventListener('click', doorHandler);
+
+      activate(stage.querySelector('.door:nth-child(1)'));
     }
   </script>
 </body>
