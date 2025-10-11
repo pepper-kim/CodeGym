@@ -63,12 +63,12 @@
             const stage = document.querySelector('.stage');
 
             function clickHandler(event) {
-                stage.removeChild(event.currentTarget);
+                if (event.target.classList.contains('ilbuni')) {
+                    stage.removeChild(event.target);
+                }
             }
 
-            for (const ilbuni of ilbuniGroup) {
-                ilbuni.addEventListener('click', clickHandler);
-            }
+            stage.addEventListener('click', clickHandler);
         }
     </script>
 </body>
