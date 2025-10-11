@@ -119,3 +119,9 @@ https://developer.mozilla.org/en-US/docs/Web/CSS/background-position
 https://developer.mozilla.org/en-US/docs/Web/CSS/background-size
 - 배경 이미지의 사이즈를 조절함.
 - 이미지의 사이즈는 자신이 속한 공간을 제약으로 설정할 수도 있음. 예들 들어, contain은 이미지가 컨테이너 내에 잘림 없이 꽉 차도록 하게 함.
+
+## Element
+### instance method
+#### closest
+https://developer.mozilla.org/ko/docs/Web/API/Element/closest
+주어진 css selector에 일치하는 요소를 찾을 때 까지 자신을 포함해 위쪽으로 트리를 타고 검색을 함.

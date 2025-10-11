@@ -63,8 +63,9 @@
             const stage = document.querySelector('.stage');
 
             function clickHandler(event) {
-                if (event.target.classList.contains('ilbuni')) {
-                    stage.removeChild(event.target);
+                const ilbuni = event.target.closest('.ilbuni');
+                if (ilbuni) {
+                    stage.removeChild(ilbuni);
                 }
             }
 
