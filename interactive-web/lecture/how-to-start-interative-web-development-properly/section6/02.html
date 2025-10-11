@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="css/reset.css">
     <style>
         .stage {
-            overflow: hidden;
             position: relative;
             width: 100vw;
             height: 75vw;
@@ -31,22 +30,22 @@
             background-size: contain;
             animation: moving infinite alternate;
         }
-        .ilbuni.a {
+        .a {
             left: 5%;
             bottom: 5%;
-            background-image: url('images/ilbuni_0.png');
+            background-image: url('./images/ilbuni_0.png');
             animation-duration: 2s;
         }
-        .ilbuni.b {
+        .b {
             left: 10%;
             bottom: 3%;
-            background-image: url('images/ilbuni_1.png');
+            background-image: url('./images/ilbuni_1.png');
             animation-duration: 3s;
         }
-        .ilbuni.c {
+        .c {
             left: 7%;
-            bottom: 10%;
-            background-image: url('images/ilbuni_2.png');
+            bottom: 5%;
+            background-image: url('./images/ilbuni_2.png');
             animation-duration: 4s;
         }
     </style>
@@ -59,7 +58,18 @@
     </div>
 
     <script>
-        // 직접 타이핑 해보세요
+        {
+            const ilbuniGroup = document.querySelectorAll('.ilbuni');
+            const stage = document.querySelector('.stage');
+
+            function clickHandler(event) {
+                stage.removeChild(event.currentTarget);
+            }
+
+            for (const ilbuni of ilbuniGroup) {
+                ilbuni.addEventListener('click', clickHandler);
+            }
+        }
     </script>
 </body>
 </html>

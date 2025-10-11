@@ -25,6 +25,30 @@ https://ko.javascript.info/onload-ondomcontentloaded
 - 사용자가 페이지를 떠날 때 발생.
 - 사용자가 떠나기 전 미리 저장 알람을 하거나 방문 통계 등을 계산할 때 사용.
 
+## Event
+### Instance properties
+#### currentTarget
+- 이벤트 핸들러가 붙어 있는 요소를 나타냄.
+- 예를 들어 `elementA.addEventListener('click', () => {});` 코드가 있을 때 `event.currentTarget`은 `elementA`를 나타냄.
+#### target
+- 이벤트가 실제로 발생한 요소.
+- 즉 돔 구조상 가장 leaf를 나타냄.
+
+예를들어, 아래 html에서 'Click me' 버튼을 클릭하면 "parent"와 "child"가 순서대로 출력된다.
+```
+<div id="parent">
+  <button id="child">Click me</buttom>
+</div>
+
+<script>
+document.getElementById("parent").addEventListener("click", (e) => {
+  console.log(e.currentTarget.id);
+  console.log(e.target.id);
+})
+</script>
+```
+
+
 ## defer & async
 https://ko.javascript.info/script-async-defer
 브라우저는 html을 읽다가`<script>`를 만나면 `src`를 다운 받고 실행 해야 하므로 멈춤. 이 시간이 길면 페이지 로딩이 느려짐. defer과 async는 스크립트 다운을 백그라운드에서 실행하고 실행을 뒤로 미룰 수 있게 함. 즉 스크립트를 다운로드 하는 동안 html 파싱이 멈추지 않음. 
@@ -79,3 +103,19 @@ https://developer.mozilla.org/ko/docs/Web/API/PointerEvent
 
 Pointer 이벤트는 아래와 같은 상속 구조를 가지고 있다.
 - Event <-- UIEvent <-- MouseEvent <-- PointerEvent
+
+# css style
+### background-repeat
+https://developer.mozilla.org/ko/docs/Web/CSS/background-repeat
+- 배경 이미지의 반복 방법을 지정함.
+- 값 종류 : repeat-x, repeat, no-repeat
+
+### background-position
+https://developer.mozilla.org/en-US/docs/Web/CSS/background-position
+- 배경 이미지의 초기 위치를 지정함.
+- 위치는 background-origin에 의해 설정된 layer에 상대적임.
+
+### background-size
+https://developer.mozilla.org/en-US/docs/Web/CSS/background-size
+- 배경 이미지의 사이즈를 조절함.
+- 이미지의 사이즈는 자신이 속한 공간을 제약으로 설정할 수도 있음. 예들 들어, contain은 이미지가 컨테이너 내에 잘림 없이 꽉 차도록 하게 함.
