@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
   <style>
+    @keyframes ball-ani {
+      from {
+        transform: translate(0, 0);
+      }
+      to {
+        transform: translate(200px, 200px);
+      }
+    }
     .ball {
       position: absolute;
       left: 0;
@@ -14,7 +22,7 @@
       margin: -15px 0 0 -15px;
       border-radius: 50%;
       background: red;
-      transition: 1s;
+      /* animation: ball-ani 1s 3 alternate forwards; */
     }
     .ball.end {
       background: dodgerblue;
@@ -26,12 +34,22 @@
   <script>
     const ballElem = document.querySelector('.ball');
 
-    window.addEventListener('click', (e) => {
-      console.log(e.clientX, e.clientY);
-      ballElem.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    // window.addEventListener('click', (e) => {
+    //   console.log(e.clientX, e.clientY);
+    //   ballElem.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    // });
+
+    // ballElem.addEventListener('transitionstart', (e) => {
+    //   ballElem.classList.add('end');
+    //   console.log(e.elapsedTime);
+    //   console.log(e.propertyName);
+    // });
+
+    ballElem.addEventListener('click', (e) => {
+      ballElem.style.animation = 'ball-ani 1s 3 alternate forwards';
     });
 
-    ballElem.addEventListener('transitionstart', (e) => {
+    ballElem.addEventListener('animationend', (e) => {
       ballElem.classList.add('end');
       console.log(e.elapsedTime);
       console.log(e.propertyName);
