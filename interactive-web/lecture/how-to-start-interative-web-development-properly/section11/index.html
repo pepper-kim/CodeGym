@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    .ball {
+      width: 50px;
+      height: 50px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="ball"></div>
+  <script>
+    {
+      const ballElem = document.querySelector('.ball');
+      let start;
+
+      function step(timestamp) {
+        console.log(timestamp);
+        if (start === undefined) {
+          start = timestamp;
+        }
+        const elapsed = timestamp - start;
+
+        const shift = Math.min(0.1 * elapsed, 500);
+        ballElem.style.transform = `translateX(${shift}px)`
+        if (shift < 500) {
+          requestAnimationFrame(step);
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+  </script>
+</body>
+</html>
