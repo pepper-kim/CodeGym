@@ -1,5 +1,7 @@
 {
+    const stageEme = document.querySelector('.stage');
     const houseElem = document.querySelector('.house');
+    const mousePos = { x: 0, y: 0 };
     let maxScrollValue;
 
     function resizeHandler() {
@@ -17,6 +19,12 @@
         progressElem.style.width = `${scrollRadio * 100}%`;
     });
 
+    window.addEventListener('mousemove', (e) => {
+        mousePos.x = -1 + 2 * (e.clientX / window.innerWidth);
+        mousePos.y = 1 - 2 * (e.clientY / window.innerHeight);
+
+        stageEme.style.transform = `rotateX(${mousePos.y * 5}deg) rotateY(${mousePos.x * 5}deg)`;
+    });
 
 
     window.addEventListener('resize', resizeHandler);
