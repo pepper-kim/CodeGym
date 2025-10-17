@@ -1,5 +1,5 @@
 body {
-    height: 500vw;
+    height: 500vh;
     font-family: 'Apple SD Gothic Neo', 'Roboto', 'Noto Sans KR', NanumGothic, 'Malgun Gothic', sans-serif;
     -webkit-overflow-scrolling: touch;
     color: #555;
@@ -18,8 +18,79 @@ body {
 .stage {
     position: absolute;
     left: 0;
-    right: 0;
+    top: 0;
     width: 100vw;
     height: 100vh;
     transform-style: preserve-3d;
+}
+
+.house {
+    width: 100vw;
+    height: 100vh;
+    transform-style: preserve-3d;
+    transform: translateZ(-490vw)
+}
+
+.wall {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.wall-left {
+    width: 1000vw;
+    background: #f8f8f8;
+    transform: rotateY(90deg) translateZ(-500vw);
+}
+
+.wall-right {
+    width: 1000vw;
+    background: #f8f8f8;
+    transform: rotateY(90deg) translateZ(-400vw);
+}
+
+.wall-front-a {
+    transform: translateZ(300vw);
+}
+
+.wall-front-b {
+    transform: translateZ(50vw);
+}
+
+.wall-front-c {
+    transform: translateZ(-200vw);
+}
+
+.wall-front-d {
+    transform: translateZ(-500vw);
+}
+
+.wall-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.wall-title {
+    font-size: 5rem;
+}
+
+.progress-bar-con {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    width: 100vw;
+    height: 5px;
+    background: #555;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 30%;
+    background: #00a8ff;
 }
