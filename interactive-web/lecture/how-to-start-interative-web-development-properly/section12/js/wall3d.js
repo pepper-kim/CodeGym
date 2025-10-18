@@ -1,4 +1,4 @@
-{
+    {
     const stageEme = document.querySelector('.stage');
     const houseElem = document.querySelector('.house');
     const mousePos = { x: 0, y: 0 };
@@ -29,4 +29,10 @@
 
     window.addEventListener('resize', resizeHandler);
     resizeHandler();
+
+    window.addEventListener('click', (e) => {
+        new Character({
+            xPos: e.clientX / window.innerWidth * 100
+        });
+    });
 }
