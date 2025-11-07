@@ -11,13 +11,17 @@ import (
 
 func main() {
 	fx.New(
-		fx.Provide(NewHTTPServer),        // *http.Server 타입을 반환하는 NewHTTPServer provider 등록
+		fx.Provide(
+			NewHTTPServer, // *http.Server 타입을 반환하는 NewHTTPServer provider 등록
+			NewServeMux,
+			NewEchoHandler,
+		),
 		fx.Invoke(func(*http.Server) {}), // *http.Server를 의존성 그래프에 등록시키는 역할
 	).Run()
 }
 
-func NewHTTPServer(lc fx.Lifecycle) *http.Server {
-	srv := &http.Server{Addr: ":8080"}
+func NewHTTPServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
+	srv := &http.Server{Addr: ":8080", Handler: mux}
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			ln, err := net.Listen("tcp", srv.Addr)
@@ -35,4 +39,10 @@ func NewHTTPServer(lc fx.Lifecycle) *http.Server {
 	})
 
 	return srv
+}
+
+func NewServeMux(echo *EchoHandler) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/echo", echo)
+	return mux
 }
