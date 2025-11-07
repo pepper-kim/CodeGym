@@ -1,20 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"os"
+
+	"go.uber.org/zap"
 )
 
-type EchoHandler struct{}
-
-func NewEchoHandler() *EchoHandler {
-	return &EchoHandler{}
+type EchoHandler struct {
+	log *zap.Logger
 }
 
-func (*EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewEchoHandler(
+	log *zap.Logger,
+) *EchoHandler {
+	return &EchoHandler{log: log}
+}
+
+func (h *EchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, r.Body); err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to handle request:", err)
+		h.log.Warn("Failed to handle request", zap.Error(err))
 	}
 }
