@@ -10,35 +10,44 @@ func main() {
 	fx.New(
 		fx.Provide(
 			fx.Annotate(
-				NewHTTPClient,
-				fx.ResultTags(`name:"client"`),
+				NewHTTPClient1,
+				fx.ResultTags(`group:"clients"`),
+			),			
+		),
+		fx.Provide(
+			fx.Annotate(
+				NewHTTPClient2,
+				fx.ResultTags(`group:"clients"`),
 			),			
 		),
 
 		fx.Provide(
 			fx.Annotate(
 				NewRedisService,
-				fx.ParamTags(`name:"client"`),
+				fx.ParamTags(`group:"clients"`),
 			),
 		),
 		fx.Invoke(func(r *RedisService) {}),
 	).Run()
 }
 
-type HTTPClient struct {}
-func NewHTTPClient() *HTTPClient {
-	fmt.Println("---------------- NewHTTPClient called")
+type HTTPClient struct {
+	fx.In,
+	fx.Out,
+}
+func NewHTTPClient1() *HTTPClient {
+	fmt.Println("---------------- NewHTTPClient1 called")
+	return &HTTPClient{}
+}
+
+func NewHTTPClient2() *HTTPClient {
+	fmt.Println("---------------- NewHTTPClient2 called")
 	return &HTTPClient{}
 }
 
 type RedisService struct {}
-func NewRedisService(client *HTTPClient) *RedisService {
+func NewRedisService(clients []*HTTPClient) *RedisService {
 	fmt.Println("---------------- NewRedisService called")
+	fmt.Println("clients count:", len(clients))
 	return &RedisService{}
-}
-
-type OpenAIService struct {}
-func NewOpenAIService(client *HTTPClient) *OpenAIService {
-	fmt.Println("---------------- NewOpenAIService called")
-	return &OpenAIService{}
 }
