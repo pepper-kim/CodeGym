@@ -1,10 +1,11 @@
-# fx.New method
+# Getting started
+### fx.New method
 New(..) method에 fx와 함께 실행할 컴포넌트를 등록할 수 있음.
 
-# App.Run method
+### App.Run method
 앱을 실행 시키는 메소드. 앱이 stop signal을 받기 전까지 block됨. signal을 받은 이후엔 앱 자원을 정리하는 로직을 실행함.
 
-# fx.Provide method
+### fx.Provide method
 > https://github.com/uber-go/fx/blob/6fab1b2d3a549a67dfcf50b96161a887181c2afa/provide.go#L50
 
 - 생성자들을 등록 시키는 함수. 애플리케이션에 인스턴스를 만드는 방법을 알려줌. 

@@ -18,7 +18,10 @@ func main() {
 		fx.Provide(
 			NewHTTPServer, // *http.Server 타입을 반환하는 NewHTTPServer provider 등록
 			NewServeMux,
-			NewEchoHandler,
+			fx.Annotate(
+				NewEchoHandler,
+				fx.As(new(Route)),
+			),
 			zap.NewExample,
 		),
 		fx.Invoke(func(*http.Server) {}), // *http.Server를 의존성 그래프에 등록시키는 역할
@@ -46,8 +49,8 @@ func NewHTTPServer(lc fx.Lifecycle, mux *http.ServeMux, log *zap.Logger) *http.S
 	return srv
 }
 
-func NewServeMux(echo *EchoHandler) *http.ServeMux {
+func NewServeMux(route Route) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/echo", echo)
+	mux.Handle(route.Pattern(), route)
 	return mux
 }
