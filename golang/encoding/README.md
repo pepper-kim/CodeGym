@@ -17,7 +17,7 @@ v2 json 패키지는, API의 기본 동작들이 더 안전한 방향으로 구�
 > The v2 API generally chooses more secure defaults than v1 [#](https://pkg.go.dev/encoding/json/v2#hdr-Security_Considerations)
 > The v2 json package changes the default behavior of Marshal and Unmarshal relative to the v1 json package to be more sensible. [#](https://github.com/go-json-experiment/json?tab=readme-ov-file#behavior-changes)
 
-### 1. 유효하지 않은 UTF8 이슈
+### 1. Invalid UTF-8
 
 표준에선 JSON이 UTF-8F로 인코딩 될 수 있어야 한다고 명시한다. 하지만 v1에선 UTF-8로는 유효하지 않은 바이트를 JSON String을 만들 때 Unicode로 대체한다. 그에 반해, v2에선 UTF-8에서 유효하지 않은 바이트를 거절한다. 더 엄격한 검증 절차를 거친다. v2에서의 기본 동작은 `jsontext.AllowInvalidUTF8` 옵션을 이용하여 바꿀 수 있다.
 
@@ -73,7 +73,7 @@ v2 기본 에러: jsontext: invalid UTF-8 within "/name" after offset 14
 v2 (AllowInvalidUTF8): map[name:test�]
 ```
 
-### 2. JSON 중복 이름 처리 문제
+### 2. json 중복 키
 
 표준에선 JSON 객체 안에 중복 이름이 존재할 경우 어떻게 처리할지에 대한 가이드라인이 없다. 즉, 각 시스템이 서로 다른 방식으로 구현한다면 그 동작성들도 달라질 수 있다는 뜻이다. v1에선 기본적으로 중복 이름을 허용하며 마지막 이름을 선택한다(psql의 `jsonb` 타입 처럼). 그에 반해 v2는 중복 이름을 거절한다. v2의 기본 동작은 `jsontext.AllowDuplicateNames` option으로 바꿀 수 있다.
 
@@ -188,18 +188,39 @@ v2 결과: {Name: Age:0}
 v2 (옵션) 결과: {Name: Age:0}
 ```
 
-### HTML escape 문제
-
-SetHTMLEscape 문제 ..
+### HTML escape
+"<"과 같은 XSS 공격에 쓰일 수 있는 문자열은 marshal 시, 유니코드로 변환됩니다.
 
 ```golang
-코드
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+func main() {
+	original := map[string]string{
+		"text": "<script> Dangerous code </script>",
+	}
+	fmt.Printf("원본: %v\n", original)
+
+	// Marshal
+	marshaled, _ := json.Marshal(original)
+	fmt.Printf("Marshal: %s\n", string(marshaled))
+
+	// Unmarshal
+	var unmarshaled map[string]string
+	json.Unmarshal(marshaled, &unmarshaled)
+	fmt.Printf("Unmarshal: %v\n", unmarshaled)
+}
 ```
 
 실행 결과
-
 ```
-출력
+원본: map[text:<script> Dangerous code </script>]
+Marshal: {"text":"\u003cscript\u003e Dangerous code \u003c/script\u003e"}
+Unmarshal: map[text:<script> Dangerous code </script>]
 ```
 
 ### omitempty 옵션의 동작성 변경
@@ -353,7 +374,7 @@ v2 omitempty (false, 0): {"bool_field":false,"int_field":0}
 v2 omitzero (false, 0): {}
 ```
 
-### string 옵션의 동작성 변경1
+### string 태그 옵션의 동작성 변경1
 string 옵션이 numeric 타입에만 적용되고 재귀적으로 동작하도록 변경됨. 실제로 string 옵션을 쓰는 경우는 큰 정수를 precision loss 없이 전달하기 위함. Javascript의 Number.MAX_SAFE_INTEGER 보다 큰 int64 값을 안전하게 전달하기 위해서 v2는 numeric에만 집중함.
 
 ```golang
@@ -567,7 +588,7 @@ err: <nil>
 ID=123, Name="Laptop", Active=true, Price=999.99
 ```
 
-### string 옵션의 동작성 변경2
+### string 태그 옵션의 동작성 변경2
 Unmarshal 할 때 v2는 string이나 number를 둘 다 허용 함. 숫자를 string으로 변경하는 경우는 흔하기 때문에 이렇게 동작한다. 역직렬화 할 때는 다양한 케이스를 받을 수 있게 하고, 직렬화 할 때는 precision을 잃지 않는 방법을 선택했다.
 
 > 🚨 중요: 내가 marshal할 때는 string으로 보내지만 unmarshal할 때는 둘다 받을게!
@@ -640,7 +661,7 @@ type Response struct {
 // v2: 둘 다 파싱 성공 (유연함)
 ```
 
-### string 옵션의 동작성 변경3
+### string 태그 옵션의 동작성 변경3
 v1은 json 값에 "null" 문자열이 있을 경우에 때때로 nil로 해석함(혼란), v2는 항상 에러를 반환(명확). null이라는 문자열을 보내려면 "\"null\""을 값으로 보내는 것이 맞음.
 
 ```golang
@@ -857,7 +878,138 @@ v1 unmarshal: Slice=[] (len=0), Map=map[] (len=0)
 v2 unmarshal: Slice=[] (len=0), Map=map[] (len=0)
 ```
 
-### PointerReceiver
+### Array 길이
+v1에선 Go 배열에 unmarshal할 때 JSON 배열의 길이가 달라도 허용됨. 그에 반해 v2에선 Go 배열과 JSON 배열의 길이가 정확히 일치해야 함.
+
+```golang
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+
+	jsonv2 "github.com/go-json-experiment/json"
+)
+
+func main() {
+	var arr [3]int
+	jsonData := `[1, 2, 3, 4, 5]`
+
+	// encoding/json (v1)
+	fmt.Println("=== encoding/json (v1) ===")
+	err := json.Unmarshal([]byte(jsonData), &arr)
+	if err != nil {
+		fmt.Printf("에러: %v\n", err)
+	} else {
+		fmt.Printf("결과: %v (초과 요소 무시)\n", arr)
+	}
+
+	// go-json-experiment/json (v2)
+	fmt.Println("\n=== go-json-experiment/json (v2) ===")
+	arr = [3]int{} // 초기화
+	err = jsonv2.Unmarshal([]byte(jsonData), &arr)
+	if err != nil {
+		fmt.Printf("에러: %v\n", err)
+	} else {
+		fmt.Printf("결과: %v\n", arr)
+	}
+}
+```
+
+실행 결과
+```
+=== encoding/json (v1) ===
+결과: [1 2 3] (초과 요소 무시)
+
+=== go-json-experiment/json (v2) ===
+에러: json: cannot unmarshal JSON array into Go [3]int after offset 14: too many array elements
+```
+
+### Byte Array
+v1에선 byte 배열을 unsigned integer 배열로 처리함. 그에 반해 v2에선 byte 배열을 `[]byte`와 같이 바이너리 값으로 처리함(base64 인코딩). 이는 `[N]byte`와 `[]byte`의 동작을 일관되게 만들기 위함이다.
+v1으로 marshal된 byte 배열 데이터(숫자 배열)는 v2로 unmarshal할 수 없고, 그 반대도 마찬가지. `format:array` 옵션을 사용하여 호환성을 유지 해야 함.
+
+v1의 동작이 필요하면 `format:array` 옵션을 사용할 수 있다.
+
+```golang
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+
+	jsonv2 "github.com/go-json-experiment/json"
+)
+
+type Data struct {
+	Hash [4]byte `json:"hash"`
+}
+
+type DataWithFormat struct {
+	Hash [4]byte `json:"hash,format:array"`
+}
+
+func main() {
+	data := Data{Hash: [4]byte{0xDE, 0xAD, 0xBE, 0xEF}}
+
+	fmt.Println("=== Marshal ===")
+
+	// v1: 숫자 배열로 출력
+	v1Result, _ := json.Marshal(data)
+	fmt.Printf("v1: %s\n", v1Result)
+	// 출력: {"hash":[222,173,190,239]}
+
+	// v2: base64로 출력 ([]byte와 동일하게)
+	v2Result, _ := jsonv2.Marshal(data)
+	fmt.Printf("v2: %s\n", v2Result)
+	// 출력: {"hash":"3q2+7w=="}
+
+	// v2 + format:array 옵션: v1처럼 동작
+	dataWithFormat := DataWithFormat{Hash: [4]byte{0xDE, 0xAD, 0xBE, 0xEF}}
+	v2FormatResult, _ := jsonv2.Marshal(dataWithFormat)
+	fmt.Printf("v2 (format:array): %s\n\n", v2FormatResult)
+	// 출력: {"hash":[222,173,190,239]}
+
+	fmt.Println("=== Unmarshal ===")
+
+	// v1 JSON (숫자 배열)
+	v1JSON := `{"hash":[222,173,190,239]}`
+	// v2 JSON (base64)
+	v2JSON := `{"hash":"3q2+7w=="}`
+
+	var d1, d2, d3, d4 Data
+
+	json.Unmarshal([]byte(v1JSON), &d1)
+	fmt.Printf("v1 unmarshal (숫자 배열): %v\n", d1.Hash)
+
+	jsonv2.Unmarshal([]byte(v2JSON), &d2)
+	fmt.Printf("v2 unmarshal (base64): %v\n", d2.Hash)
+
+	// v2로 v1 형식 읽기 시도
+	err := jsonv2.Unmarshal([]byte(v1JSON), &d3)
+	fmt.Printf("v2 unmarshal (숫자 배열): err=%v\n", err)
+
+	// v1으로 v2 형식 읽기 시도
+	err = json.Unmarshal([]byte(v2JSON), &d4)
+	fmt.Printf("v1 unmarshal (base64): err=%v\n", err)
+}
+```
+
+실행 결과
+```
+=== Marshal ===
+v1: {"hash":[222,173,190,239]}
+v2: {"hash":"3q2+7w=="}
+v2 (format:array): {"hash":[222,173,190,239]}
+
+=== Unmarshal ===
+v1 unmarshal (숫자 배열): [222 173 190 239]
+v2 unmarshal (base64): [222 173 190 239]
+v2 unmarshal (숫자 배열): err=json: cannot unmarshal JSON array into Go [4]uint8 within "/hash"
+v1 unmarshal (base64): err=json: cannot unmarshal string into Go value of type [4]uint8
+```
+
+### MergeNull
 v1에선 ReferenceType에 null을 unmarshaling하면 값이 비워짐. 하지만 ValueType 필드에 null 값을 unmarshaling하면 값이 비워지지 않음. 그에 반해 v2는 모두 다 zero value로 바뀜.
 
 ```golang
@@ -1012,6 +1164,49 @@ v2: 모든 필드에 null 전송
   Array: [0 0]
 ```
 
+
+### PointerReceiver
+포인터 리시버에 MarshalJSON(), UnmarshalJSON()을 구현한 경우에 jsonv1에서는 해당 메소드들이 호출되지 않습니다. 이와 달리 v2에선 호출됩니다. 
+CallMethodsWithLegacySemantics 옵션을 이용하여 v1의 동작성을 유지할 수 있습니다.
+
+```golang
+package main
+
+import (
+	"fmt"
+
+	jsonv2 "github.com/go-json-experiment/json"
+	jsonv1 "github.com/go-json-experiment/json/v1"
+)
+
+// 포인터 리시버에 MarshalJSON 구현
+type MyValue struct {
+	Data string
+}
+
+func (m *MyValue) MarshalJSON() ([]byte, error) {
+	return []byte(`"custom: ` + m.Data + `"`), nil
+}
+
+func main() {
+	v := MyValue{Data: "hello"}
+
+	// jsonv1: 포인터 리시버 메서드 호출 안됨 (주소 불가)
+	v1Result, _ := jsonv1.Marshal(v)
+	fmt.Printf("jsonv1: %s\n", string(v1Result))
+
+	// jsonv2: 주소 가능 여부와 상관없이 메서드 호출
+	v2Result, _ := jsonv2.Marshal(v)
+	fmt.Printf("jsonv2: %s\n", string(v2Result))
+}
+```
+
+실행 결과
+```
+➜  encoding git:(main) ✗ go run .
+jsonv1: {"Data":"hello"}
+jsonv2: "custom: hello"
+```
 
 ## How to acivate v2
 

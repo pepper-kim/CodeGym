@@ -1,82 +1,61 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
-	json "github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
+	jsonv2 "github.com/go-json-experiment/json"
 )
 
-type Product struct {
-	ID     int64   `json:"id,string"`
-	Name   string  `json:"name,string"`
-	Active bool    `json:"active,string"`
-	Price  float64 `json:"price,string"`
+type Data struct {
+	Hash [4]byte `json:"hash"`
 }
 
-type Data struct {
-	Items []string          `json:"items,omitempty"`
-	Meta  map[string]string `json:"meta,omitempty"`
+type DataWithFormat struct {
+	Hash [4]byte `json:"hash,format:array"`
 }
 
 func main() {
-	fmt.Println("=== v2 기본 동작 ===\n")
+	data := Data{Hash: [4]byte{0xDE, 0xAD, 0xBE, 0xEF}}
 
-	// StringifyWithLegacySemantics 테스트
-	product := Product{
-		ID:     123,
-		Name:   "Laptop",
-		Active: true,
-		Price:  999.99,
-	}
+	fmt.Println("=== Marshal ===")
 
-	v2DefaultJSON, _ := json.Marshal(product)
-	fmt.Println("v2 기본 (numeric만 문자열화):")
-	fmt.Printf("%s\n\n", v2DefaultJSON)
+	// v1: 숫자 배열로 출력
+	v1Result, _ := json.Marshal(data)
+	fmt.Printf("v1: %s\n", v1Result)
+	// 출력: {"hash":[222,173,190,239]}
 
-	// FormatNilSliceAsNull, FormatNilMapAsNull 테스트
-	nilData := Data{
-		Items: nil,
-		Meta:  nil,
-	}
+	// v2: base64로 출력 ([]byte와 동일하게)
+	v2Result, _ := jsonv2.Marshal(data)
+	fmt.Printf("v2: %s\n", v2Result)
+	// 출력: {"hash":"3q2+7w=="}
 
-	v2DefaultNilJSON, _ := json.Marshal(nilData)
-	fmt.Println("v2 기본 (nil → 빈 배열/객체):")
-	fmt.Printf("%s\n\n", v2DefaultNilJSON)
+	// v2 + format:array 옵션: v1처럼 동작
+	dataWithFormat := DataWithFormat{Hash: [4]byte{0xDE, 0xAD, 0xBE, 0xEF}}
+	v2FormatResult, _ := jsonv2.Marshal(dataWithFormat)
+	fmt.Printf("v2 (format:array): %s\n\n", v2FormatResult)
+	// 출력: {"hash":[222,173,190,239]}
 
-	fmt.Println("=== v1 호환 모드 설정 ===\n")
+	fmt.Println("=== Unmarshal ===")
 
-	// v1 완전 호환 모드 옵션
-	v1CompatOptions := json.JoinOptions(
-		json.FormatNilSliceAsNull(true),
-		json.FormatNilMapAsNull(true),
-		json.MatchCaseInsensitiveNames(true),
-		jsontext.AllowDuplicateNames(true),
-		jsontext.AllowInvalidUTF8(true),
-	)
+	// v1 JSON (숫자 배열)
+	v1JSON := `{"hash":[222,173,190,239]}`
+	// v2 JSON (base64)
+	v2JSON := `{"hash":"3q2+7w=="}`
 
-	// StringifyWithLegacySemantics 효과
-	v1CompatJSON, _ := json.Marshal(product, v1CompatOptions)
-	fmt.Println("v1 호환 모드 (bool/string도 문자열화):")
-	fmt.Printf("%s\n\n", v1CompatJSON)
+	var d1, d2, d3, d4 Data
 
-	// FormatNilSliceAsNull, FormatNilMapAsNull 효과
-	v1CompatNilJSON, _ := json.Marshal(nilData, v1CompatOptions)
-	fmt.Println("v1 호환 모드 (nil → null):")
-	fmt.Printf("%s\n\n", v1CompatNilJSON)
+	json.Unmarshal([]byte(v1JSON), &d1)
+	fmt.Printf("v1 unmarshal (숫자 배열): %v\n", d1.Hash)
 
-	fmt.Println("=== 비교 결과 ===\n")
-	fmt.Println("StringifyWithLegacySemantics:")
-	fmt.Printf("  v2 기본:    %s\n", v2DefaultJSON)
-	fmt.Printf("  v1 호환:    %s\n", v1CompatJSON)
-	fmt.Println("  → bool/string도 문자열화됨")
+	jsonv2.Unmarshal([]byte(v2JSON), &d2)
+	fmt.Printf("v2 unmarshal (base64): %v\n", d2.Hash)
 
-	fmt.Println("\nFormatNilSliceAsNull & FormatNilMapAsNull:")
-	fmt.Printf("  v2 기본:    %s\n", v2DefaultNilJSON)
-	fmt.Printf("  v1 호환:    %s\n", v1CompatNilJSON)
-	fmt.Println("  → nil이 null로 출력됨")
+	// v2로 v1 형식 읽기 시도
+	err := jsonv2.Unmarshal([]byte(v1JSON), &d3)
+	fmt.Printf("v2 unmarshal (숫자 배열): err=%v\n", err)
 
-	fmt.Println("\n=== 결론 ===")
-	fmt.Println("v1 호환 옵션을 사용하면 v2가 v1처럼 동작함")
-	fmt.Println("마이그레이션 시 점진적으로 전환 가능")
+	// v1으로 v2 형식 읽기 시도
+	err = json.Unmarshal([]byte(v2JSON), &d4)
+	fmt.Printf("v1 unmarshal (base64): err=%v\n", err)
 }
