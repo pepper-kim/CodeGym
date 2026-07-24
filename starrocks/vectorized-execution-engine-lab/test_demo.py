@@ -21,6 +21,16 @@ class ExecutionModelTest(unittest.TestCase):
         self.assertEqual(["chat_id", "channel_id", "status"], list(rows[0]))
         self.assertIn(rows[0]["status"], {"OPEN", "CLOSED", "SNOOZED"})
 
+    def test_export_uses_lf_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "export.csv"
+            demo.export_csv(demo.generate_chunk(1), output)
+
+            exported = output.read_bytes()
+
+        self.assertNotIn(b"\r", exported)
+        self.assertEqual(2, exported.count(b"\n"))
+
     def test_export_requires_existing_parent_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "missing" / "export.csv"
