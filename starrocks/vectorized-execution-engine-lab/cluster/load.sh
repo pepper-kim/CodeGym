@@ -4,8 +4,136 @@ set -euo pipefail
 cluster_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 lab_dir="$(cd "$cluster_dir/.." && pwd)"
 compose=(docker compose -f "$cluster_dir/compose.yaml")
-target="${1:-}"
 
+mysql_in_container() {
+  "${compose[@]}" exec -T starrocks \
+    mysql -h127.0.0.1 -P9030 -uroot "$@"
+}
+
+run_with_timeout() {
+  local timeout_seconds="$1"
+  shift
+
+  python3 - "$timeout_seconds" "$@" <<'PY'
+import os
+import signal
+import subprocess
+import sys
+
+timeout_seconds = float(sys.argv[1])
+command = sys.argv[2:]
+process = subprocess.Popen(
+    command,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    start_new_session=True,
+)
+try:
+    output, _ = process.communicate(timeout=timeout_seconds)
+except subprocess.TimeoutExpired:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    output, _ = process.communicate()
+    sys.stdout.buffer.write(output)
+    print(f"backend probe timed out after {timeout_seconds:g} seconds", file=sys.stderr)
+    raise SystemExit(124)
+sys.stdout.buffer.write(output)
+raise SystemExit(process.returncode)
+PY
+}
+
+wait_for_cluster_ready() {
+  local timeout_seconds="${READINESS_TIMEOUT_SECONDS:-120}"
+  local probe_max_time="${READINESS_PROBE_MAX_TIME:-5}"
+  local poll_interval_seconds="${READINESS_POLL_INTERVAL_SECONDS:-2}"
+  local start_seconds deadline_seconds now_seconds remaining_seconds
+  local curl_max_time mysql_connect_timeout backend_probe_timeout sleep_seconds
+  local bootstrap_ok backend_ok
+  local last_bootstrap_observation='(no bootstrap probe completed)'
+  local last_backend_observation='(no backend probe completed)'
+
+  start_seconds="$(date +%s)"
+  deadline_seconds=$((start_seconds + timeout_seconds))
+  while true; do
+    now_seconds="$(date +%s)"
+    if ((now_seconds >= deadline_seconds)); then
+      echo "StarRocks FE and BE were not ready within ${timeout_seconds} seconds" >&2
+      echo "last bootstrap observation: ${last_bootstrap_observation}" >&2
+      echo "last backend observation: ${last_backend_observation}" >&2
+      echo "check: ${compose[*]} logs starrocks" >&2
+      return 1
+    fi
+    remaining_seconds=$((deadline_seconds - now_seconds))
+    curl_max_time=$probe_max_time
+    if ((curl_max_time > remaining_seconds)); then
+      curl_max_time=$remaining_seconds
+    fi
+
+    if last_bootstrap_observation="$(curl -fsS --max-time "$curl_max_time" \
+        http://127.0.0.1:8030/api/bootstrap 2>&1)" \
+      && grep -q '"status":"OK"' <<< "$last_bootstrap_observation"; then
+      bootstrap_ok=true
+    else
+      bootstrap_ok=false
+    fi
+
+    now_seconds="$(date +%s)"
+    if ((now_seconds >= deadline_seconds)); then
+      echo "StarRocks FE and BE were not ready within ${timeout_seconds} seconds" >&2
+      echo "last bootstrap observation: ${last_bootstrap_observation}" >&2
+      echo "last backend observation: ${last_backend_observation}" >&2
+      echo "check: ${compose[*]} logs starrocks" >&2
+      return 1
+    fi
+    remaining_seconds=$((deadline_seconds - now_seconds))
+    mysql_connect_timeout=$probe_max_time
+    if ((mysql_connect_timeout > remaining_seconds)); then
+      mysql_connect_timeout=$remaining_seconds
+    fi
+    backend_probe_timeout=$probe_max_time
+    if ((backend_probe_timeout > remaining_seconds)); then
+      backend_probe_timeout=$remaining_seconds
+    fi
+
+    if last_backend_observation="$(run_with_timeout "$backend_probe_timeout" \
+        "${compose[@]}" exec -T starrocks \
+        mysql -h127.0.0.1 -P9030 -uroot \
+        --connect-timeout="$mysql_connect_timeout" \
+        --batch --skip-column-names -e "SHOW BACKENDS" 2>&1)" \
+      && awk -F '\t' '$9 == "true" { found=1 } END { exit !found }' \
+        <<< "$last_backend_observation"; then
+      backend_ok=true
+    else
+      backend_ok=false
+    fi
+
+    now_seconds="$(date +%s)"
+    if ((now_seconds >= deadline_seconds)); then
+      echo "StarRocks FE and BE were not ready within ${timeout_seconds} seconds" >&2
+      echo "last bootstrap observation: ${last_bootstrap_observation}" >&2
+      echo "last backend observation: ${last_backend_observation}" >&2
+      echo "check: ${compose[*]} logs starrocks" >&2
+      return 1
+    fi
+    if [[ "$bootstrap_ok" == true && "$backend_ok" == true ]]; then
+      return 0
+    fi
+    remaining_seconds=$((deadline_seconds - now_seconds))
+    sleep_seconds=$poll_interval_seconds
+    if ((sleep_seconds > remaining_seconds)); then
+      sleep_seconds=$remaining_seconds
+    fi
+    sleep "$sleep_seconds"
+  done
+}
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
+
+target="${1:-}"
 case "$target" in
   tiny) csv="$lab_dir/data/tiny_user_chats.csv" ;;
   benchmark) csv="$lab_dir/data/benchmark_user_chats.csv" ;;
@@ -22,25 +150,7 @@ if [[ ! -f "$csv" ]]; then
   exit 1
 fi
 
-mysql_in_container() {
-  "${compose[@]}" exec -T starrocks \
-    mysql -h127.0.0.1 -P9030 -uroot "$@"
-}
-
-ready=false
-for _ in {1..60}; do
-  if curl -fsS http://127.0.0.1:8030/api/bootstrap \
-      | grep -q '"status":"OK"' \
-    && mysql_in_container --batch --skip-column-names -e "SHOW BACKENDS" 2>/dev/null \
-      | awk -F '\t' '$9 == "true" { found=1 } END { exit !found }'; then
-    ready=true
-    break
-  fi
-  sleep 2
-done
-if [[ "$ready" != true ]]; then
-  echo "StarRocks FE and BE were not ready within 120 seconds" >&2
-  echo "check: ${compose[*]} logs starrocks" >&2
+if ! wait_for_cluster_ready; then
   exit 1
 fi
 
