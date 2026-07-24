@@ -176,7 +176,7 @@ def export_csv(chunk: Chunk, path: Path) -> None:
     if not path.parent.is_dir():
         raise ValueError(f"output parent directory does not exist: {path.parent}")
     with path.open("w", newline="", encoding="utf-8") as target:
-        writer = csv.writer(target)
+        writer = csv.writer(target, lineterminator="\n")
         writer.writerow(("chat_id", "channel_id", "status"))
         writer.writerows(
             (int(chat_id), int(channel_id), CODE_TO_STATUS[int(status)])
