@@ -1,4 +1,7 @@
+import csv
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 
@@ -6,6 +9,24 @@ import demo
 
 
 class ExecutionModelTest(unittest.TestCase):
+    def test_export_writes_header_rows_and_status_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "export.csv"
+            demo.export_csv(demo.generate_chunk(7), output)
+
+            with output.open(newline="", encoding="utf-8") as source:
+                rows = list(csv.DictReader(source))
+
+        self.assertEqual(7, len(rows))
+        self.assertEqual(["chat_id", "channel_id", "status"], list(rows[0]))
+        self.assertIn(rows[0]["status"], {"OPEN", "CLOSED", "SNOOZED"})
+
+    def test_export_requires_existing_parent_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "missing" / "export.csv"
+            with self.assertRaisesRegex(ValueError, "parent directory"):
+                demo.export_csv(demo.generate_chunk(1), output)
+
     def test_tiny_row_and_vector_results_match_expected(self):
         chunk = demo.load_tiny()
         row_result, row_stats = demo.run_row(demo.to_rows(chunk))
