@@ -52,21 +52,29 @@ response_file="$(mktemp "${TMPDIR:-/tmp}/vector-lab-load.XXXXXX")"
 trap 'rm -f "$response_file"' EXIT
 label="vector_lab_${target}_$(date +%s)_$$"
 
-http_code="$(curl --location-trusted --silent --show-error \
-  --user root: \
-  --header "label:$label" \
-  --header "Expect:100-continue" \
-  --header "format:csv" \
-  --header "column_separator:," \
-  --header "skip_header:1" \
-  --header "strict_mode:true" \
-  --upload-file "$csv" \
-  --request PUT \
-  --output "$response_file" \
-  --write-out '%{http_code}' \
-  http://127.0.0.1:8030/api/vector_lab/user_chats/_stream_load)"
+if http_code="$(curl --location-trusted --silent --show-error \
+    --user root: \
+    --header "label:$label" \
+    --header "Expect:100-continue" \
+    --header "format:csv" \
+    --header "column_separator:," \
+    --header "skip_header:1" \
+    --header "strict_mode:true" \
+    --upload-file "$csv" \
+    --request PUT \
+    --output "$response_file" \
+    --write-out '%{http_code}' \
+    http://127.0.0.1:8030/api/vector_lab/user_chats/_stream_load)"; then
+  curl_rc=0
+else
+  curl_rc=$?
+fi
 
 cat "$response_file"
+if ((curl_rc != 0)); then
+  echo "Stream Load transport failed: curl exit=$curl_rc HTTP=${http_code:-000}" >&2
+  exit "$curl_rc"
+fi
 python3 - "$response_file" "$http_code" "$expected_rows" <<'PY'
 import json
 import sys
