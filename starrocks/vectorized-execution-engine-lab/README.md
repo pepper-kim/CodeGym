@@ -10,6 +10,7 @@ Operator 입출력을 이해하는 것이 목표다.
 ## 준비
 
 - Python 3.12
+- NumPy 2.4.4
 - Docker Desktop 또는 Docker Engine + Compose v2
 - `curl`
 
@@ -104,9 +105,16 @@ docker compose -f cluster/compose.yaml exec -T starrocks \
 ```
 
 `load.sh`는 FE의 bootstrap 응답만 보지 않는다. SQL 연결이 되고 `SHOW BACKENDS`에서
-Alive BE를 찾을 때까지 기다린 뒤 schema 생성과 Stream Load를 진행한다. 성공하면
-Stream Load JSON의 `Status`가 `Success`, `NumberLoadedRows`가 `12`이고 마지막에 다음
-줄이 보인다.
+Alive BE를 찾을 때까지 기다린 뒤 schema 생성과 Stream Load를 진행한다. 준비 상태를
+수동으로 확인할 때는 다음 명령을 실행해 출력에서 `Alive: true`를 찾는다.
+
+```bash
+docker compose -f cluster/compose.yaml exec -T starrocks \
+  mysql -h127.0.0.1 -P9030 -uroot -e "SHOW BACKENDS\G"
+```
+
+Stream Load가 성공하면 JSON의 `Status`가 `Success`, `NumberLoadedRows`가 `12`이고
+마지막에 다음 줄이 보인다.
 
 ```text
 Loaded 12 rows into vector_lab.user_chats
@@ -223,8 +231,10 @@ docker compose -f cluster/compose.yaml down --volumes
 ## 문제 해결
 
 - NumPy import 실패: `.venv/bin/python -m pip install -r requirements.txt`
-- FE 또는 BE 준비 실패: `docker compose -f cluster/compose.yaml logs starrocks`에서
-  SQL 서비스와 `SHOW BACKENDS`의 Alive 상태를 함께 확인
+- BE 준비 상태 확인: 위의 `SHOW BACKENDS\G` 명령에서 `Alive: true`인지 확인. FE
+  bootstrap 응답만으로는 BE 준비를 증명하지 못함
+- FE 또는 BE 진단 로그: `docker compose -f cluster/compose.yaml logs starrocks`.
+  로그는 원인 조사용이며 Alive의 증거는 `SHOW BACKENDS` 출력임
 - benchmark CSV 없음: `.venv/bin/python demo.py export`
 - 포트 충돌: 8030, 8040, 9030을 사용하는 로컬 프로세스를 종료한 뒤 다시 시작
 - Stream Load 실패: `load.sh`가 출력한 JSON의 `Message`와 `ErrorURL` 확인. 마지막
