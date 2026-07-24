@@ -1,4 +1,5 @@
-SELECT VERSION() AS starrocks_version;
+SELECT VERSION() AS mysql_compatibility,
+       CURRENT_VERSION() AS starrocks_version;
 USE vector_lab;
 SELECT COUNT(*) AS loaded_rows FROM user_chats;
 

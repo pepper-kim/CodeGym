@@ -48,6 +48,11 @@ Row trace에서는 입력 행마다 predicate가 한 번 호출된다. Chunk tra
 `status` Column을 한 번에 비교해 Boolean mask를 만들고, 선택된 `channel_id`만
 batch aggregation에 전달한다. 마지막 checkpoint는 다음과 같다.
 
+즉 Row 방식은 Python predicate와 그에 따른 control-flow branching을 행마다 수행하는
+반면, Chunk 방식은 한 batch에 대해 Boolean mask 하나를 만든 뒤 선택 결과를 다음 단계에
+전달한다. 이 차이가 SIMD 사용이나 속도 향상을 보장하지는 않으며, 실제 결과는 데이터와
+Python/실행 환경에 따라 측정해서 판단해야 한다.
+
 ```text
 Result equality: True
 Row stats: ExecutionStats(rows_examined=12, selected_rows=8, filter_calls=12, aggregate_calls=8, chunks_processed=0)
@@ -170,9 +175,12 @@ Load에서는 CRLF의 마지막 `\r`가 `status` 값에 남아 predicate 결과�
 ```bash
 PROFILE_ID='<query_id>'
 docker compose -f cluster/compose.yaml exec -T starrocks \
-  mysql -h127.0.0.1 -P9030 -uroot \
+  mysql --raw -h127.0.0.1 -P9030 -uroot \
   -e "SELECT get_query_profile('$PROFILE_ID')\G"
 ```
+
+Profile publication은 비동기일 수 있다. Query ID가 있지만 Profile이 아직 없으면 잠시
+기다린 뒤 `get_query_profile`을 다시 실행한다.
 
 또는 [StarRocks FE](http://localhost:8030)의 Queries 화면에서 같은 Query ID를 연다.
 
@@ -199,16 +207,18 @@ Operator의 지표끼리 해석한다.
 
 ## 검증
 
-Python 동작, shell 문법, Compose 구성을 각각 확인한다.
+Python 동작, readiness regression, shell 문법, Compose 구성을 각각 확인한다.
 
 ```bash
 .venv/bin/python -m unittest -v test_demo.py
-bash -n cluster/load.sh
+bash cluster/test_load.sh
+bash -n cluster/load.sh cluster/test_load.sh
 docker compose -f cluster/compose.yaml config --quiet
 ```
 
 unit test는 고정 결과, 결정적 생성, 불완전 마지막 Chunk, 빈 selection, Column 길이,
-CSV export와 LF line ending을 확인한다. 세 명령 모두 exit code 0이어야 하며 현재 test
+CSV export와 LF line ending을 확인한다. readiness regression은 deadline, probe timeout,
+timeout diagnostics를 확인한다. 네 명령 모두 exit code 0이어야 하며 현재 Python test
 suite는 `Ran 9 tests`와 `OK`를 출력한다.
 
 ## 종료와 초기화
