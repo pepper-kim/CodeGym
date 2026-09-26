@@ -4,16 +4,20 @@
 
 『Database Internals』의 핵심 원리를 온전히 이해하고, 낯선 데이터베이스도 내부 동작을 스스로 추론·검증하며, 서로 다른 데이터베이스가 같은 문제를 어떤 구조와 트레이드오프로 해결하는지 비교할 수 있는 수준에 도달한다.
 
-목표는 특정 데이터베이스의 기능이나 설정을 암기하는 것이 아니다. 새로운 데이터베이스를 접했을 때 다음 질문에 답할 수 있는 사람이 되는 것이다.
+목표는 특정 데이터베이스의 기능이나 설정을 암기하는 것이 아니다. 전체 학습을 관통하는 질문은 다음과 같다.
 
-1. 데이터가 물리적으로 어디에, 어떤 구조로 저장되는가?
-2. 쓰기·읽기·수정·삭제는 시간순으로 어떻게 진행되는가?
-3. 동시성, 가시성, 원자성, 내구성은 어떻게 만들어지는가?
-4. 장애가 나면 무엇을 가지고 어디까지 복구하는가?
-5. Compaction, Vacuum, Merge 같은 백그라운드 작업은 왜 필요한가?
-6. CPU·메모리·디스크·I/O를 여러 작업이나 인스턴스가 어떻게 나눠 쓰는가?
-7. 데이터를 여러 노드에 어떻게 분할·복제하고 일관성을 유지하는가?
-8. OLTP·OLAP·HTAP은 저장 구조와 실행 방식이 왜 달라지는가?
+> 주어진 워크로드와 보장 수준에서, 데이터베이스는 데이터를 어떻게 저장·변경·노출·복구·유지·분산하며, 그 대가를 어디에 배치하는가?
+
+이 질문을 `요구사항 → 물리적 저장과 탐색 → 변경 비용 → 동시성과 가시성 → 장애와 복구 → 시간 경과와 자원 경쟁 → 여러 노드 → 설계 선택의 평가` 순서로 분할한다. 앞 단계의 단순한 데이터베이스에 현실의 압력을 하나씩 추가하고, 마지막에 전체 설계의 적합성과 트레이드오프를 평가한다.
+
+1. **무엇을 해결해야 하는가?** 데이터 모델과 point lookup·range scan·join·aggregation 같은 접근 패턴, latency·throughput·freshness, 필요한 정합성과 내구성을 먼저 정의한다.
+2. **데이터를 어떤 물리 구조로 표현하고 필요한 바이트를 어떻게 찾는가?** Page, record, file, B+tree, LSM-tree, Heap, Columnar, index와 cache를 배운다. 아직 동시 실행이나 장애는 없다고 가정한다.
+3. **데이터 변경 비용을 언제, 어디에서 지불하는가?** In-place update와 append, buffer와 MemTable, immutable file, read·write·space amplification을 비교한다.
+4. **여러 읽기와 쓰기가 겹칠 때 누구에게 어떤 버전이 보여야 하는가?** Lock, MVCC, Sequence Number, Snapshot, isolation과 정상 실행 중의 atomicity를 다룬다.
+5. **실행 도중 멈췄을 때 무엇이 살아남고 어떻게 복구되는가?** WAL, redo·undo, checkpoint, commit, crash atomicity와 client acknowledgement의 의미를 배운다.
+6. **오래 실행되고 작업들이 유한한 자원을 경쟁해도 어떻게 성능을 유지하는가?** Compaction, Vacuum, Purge, Merge, tombstone 제거, cache·thread·I/O 관리, per-instance와 per-host 제어, backpressure와 stall을 다룬다.
+7. **한 노드를 넘으면 데이터의 책임과 진실을 어떻게 나누는가?** Partitioning, replication, consistency, quorum, consensus, distributed transaction과 distributed execution을 배운다.
+8. **그래서 이 시스템은 어떤 문제에 적합하며, 무엇을 얻고 잃는가?** Embedded engine·DBMS·managed service의 책임 경계를 구분하고, RocksDB부터 HeatWave까지 OLTP·OLAP·HTAP의 저장 및 실행 구조를 비교한다.
 
 ## 학습 대상
 
