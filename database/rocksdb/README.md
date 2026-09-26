@@ -2,17 +2,17 @@
 
 상위 학습 목표와 공통 원칙은 [`database/README.md`](../README.md)를 따른다.
 
-학습 상태는 상위 문서의 `학습과 통과 절차`에 따라 `미학습`, `학습 중`, `통과`로 판정한다. 이 문서에는 과정별 통과 기준, 상태와 통과 근거를 기록한다.
-
 RocksDB를 단일 노드에 내장되는 LSM 기반 ordered key-value storage engine으로 이해한다. 하나의 키와 트랜잭션이 쓰기 요청부터 가시성 결정, 탐색, Flush, Compaction, 삭제, 공간 회수, 장애 후 재시작까지 이동하는 전 생명주기를 추적하고, 각 단계가 만드는 보장과 비용을 예측할 수 있어야 한다.
 
 RocksDB만 고립해서 암기하지 않는다. 『Database Internals』에서 배운 파일 구조, 동시성 제어, 복구, 무결성, 자원 관리 원리를 RocksDB에 적용하고, 이후 Berkeley DB, InnoDB, PostgreSQL과 비교할 수 있는 기반을 만든다.
 
-## 단계별 완료 기준
+## 최종 이해 평가 축
 
-| 단계 | 중심 질문 | RocksDB에서 설명할 수 있어야 하는 것 |
+아래 8개 축은 학습 순서가 아니라 RocksDB 학습을 마쳤을 때 갖춰야 할 이해를 평가하는 관점이다.
+
+| 평가 축 | 중심 질문 | RocksDB에서 설명할 수 있어야 하는 것 |
 |---|---|---|
-| 1. 요구사항과 경계 | RocksDB는 어떤 문제를 해결하고 무엇을 상위 계층에 남기는가? | RocksDB가 byte-array key와 value를 정렬해 저장하는 embedded single-node engine임을 설명한다. SQL, JOIN, schema, constraint, secondary index의 자동 유지, shard 배치, replication, consensus는 기본 엔진의 책임이 아니며, 필요한 인덱스와 제약은 애플리케이션이 인코딩하고 원자적으로 갱신해야 한다는 경계를 구분한다. |
+| 1. 요구사항과 경계 | RocksDB는 어떤 문제를 해결하고 무엇을 상위 계층에 남기는가? | RocksDB가 byte-array key와 value를 정렬해 저장하는 embedded single-node engine임을 설명한다. SQL, JOIN, schema, constraint, secondary index의 자동 유지, shard 배치, replication, consensus는 기본 엔진의 책임이 아니며, 필요한 인덱스와 제약의 의미·유지 절차를 애플리케이션이 설계하고 필요에 따라 RocksDB의 원자성·충돌 제어 수단을 조합해야 한다는 경계를 구분한다. |
 | 2. 저장과 탐색 | 값은 어디에 있고 point lookup과 range scan은 어떻게 다른가? | MemTable, immutable MemTable, SSTable의 data/index/filter block, block cache, L0의 겹치는 범위와 L1 이상의 겹치지 않는 범위를 연결한다. `Get`이 Bloom filter로 많은 파일을 제외하는 과정과 Iterator가 여러 MemTable·run·level을 정렬 병합하며 tombstone의 영향까지 받는 과정을 구분한다. |
 | 3. 변경과 비용 이연 | 현재의 작은 쓰기가 미래에 어떤 비용을 만드는가? | Put, Delete, Merge가 WAL, MemTable, Flush, Compaction을 거치는 과정을 설명한다. Leveled, Tiered/Universal, FIFO Compaction이 read, write, space amplification을 어디에 배치하는지 비교하고, compaction picker 내부 구현과 정책의 원리를 구분한다. |
 | 4. 동시성과 가시성 | 여러 읽기와 쓰기가 겹칠 때 무엇이 보이고 충돌은 어떻게 처리되는가? | InternalKey, Sequence Number, LastPublishedSequence, Snapshot, read sequence, SuperVersion으로 논리적 시점과 물리 구조 뷰를 구분한다. WriteBatch atomicity와 transaction isolation의 차이, `TransactionDB`의 비관적 잠금, `OptimisticTransactionDB`의 commit-time conflict validation, `GetForUpdate`의 역할과 wait·abort·retry 비용을 설명한다. |
@@ -39,21 +39,20 @@ Column Family와 DB 인스턴스의 경계는 모든 단계에 걸쳐 다음과 
 - 2021 RocksDB 논문이 직접 설명하는 구조, 운영 경험, 보장과 한계를 먼저 원문으로 읽는다.
 - SuperVersion, LastPublishedSequence, MANIFEST recovery, TransactionDB처럼 논문만으로 부족한 내용은 현재 upstream 문서와 코드를 별도 근거로 사용한다.
 - 논문 주장, 현재 upstream 동작, 『Database Internals』의 일반 원리, 이해를 위한 추론을 한 문장 안에서 섞지 않는다.
-- 수업은 `예측 → 원문 발췌 → 직역 → 시간순 상태 흐름 → 보장·비보장·알 수 없음 → 확인 문제` 순서로 진행한다.
 
 Checksum은 RocksDB 핵심 완료 범위에 포함한다. 다만 checksum과 CRC의 구현 알고리즘, 모든 관련 옵션은 학습하지 않고 `durability와 integrity의 차이`, `탐지와 복구의 차이`, `검증 범위`까지만 배운다.
 
-On-disk format versioning과 compatibility는 『Database Internals』 3장의 일반 원리를 배운 뒤 RocksDB 논문 §4.4의 upgrade, rollback, file copy 사례로 연결한다. 이는 RocksDB 핵심 선행학습이나 별도 구현 심화 과정으로 두지 않는다.
+On-disk format versioning과 compatibility는 『Database Internals』 3장의 일반 원리를 배운 뒤 RocksDB 논문 §4.4의 upgrade, rollback, file copy 사례로 연결한다. 이는 RocksDB 핵심 선행학습이나 별도 구현 심화 과정으로 두지 않고, 13번의 논문 전체 완독과 종료 시험에서 다룬다.
 
-## 전체 학습 목차
+## 학습 순서
 
-앞의 8개 완료 기준은 최종 이해를 평가하는 축이고, 아래 13개 과정은 그 목표에 도달하기 위한 학습 순서다. 한 인스턴스의 한 연산에서 시작해 동시 실행, 시간 경과, 장애, 호스트 자원 경쟁, 분산 시스템과의 경계 순으로 현실의 압력을 추가한다.
+앞의 8개 평가 축은 최종 이해를 평가하는 관점이고, 아래 13개 과정은 그 목표에 도달하기 위한 학습 순서다. 한 인스턴스의 한 연산에서 시작해 동시 실행, 시간 경과, 장애, 호스트 자원 경쟁, 분산 시스템과의 경계 순으로 현실의 압력을 추가한다.
 
 ### 1부: 한 인스턴스에서 읽고 쓰기
 
 | 순서 | 중심 질문 | 주요 내용 | 주 근거 |
 |---|---|---|---|
-| 1. 책임과 데이터 모델 | RocksDB는 무엇을 저장하며 무엇을 하지 않는가? | ordered byte-array KV, embedded library, DB·Column Family·인스턴스 경계, secondary index와 constraint의 애플리케이션 책임 | 논문 §1, §2.1, §2.2, §4.2 |
+| 1. 책임과 데이터 모델 | RocksDB는 무엇을 저장하며 무엇을 하지 않는가? | ordered byte-array KV, embedded library, DB·Column Family·인스턴스 경계, secondary index와 constraint의 애플리케이션 책임 | 논문 §1, §2.1, §2.2, §4.2, §7 |
 | 2. 쓰기와 공개 | Put은 언제 기록되고 언제 독자에게 보이는가? | WriteBatch, Sequence 할당, WAL, MemTable, LastPublishedSequence, `sync`, no-WAL, acknowledgement | 논문 §2.2, §4.3과 현재 upstream |
 | 3. 물리적 탐색 | Get과 Iterator는 어디를 읽는가? | MemTable·immutable MemTable, SST data/index/filter block, block cache, Bloom filter, L0 중첩, L1+ 비중첩, point lookup과 merge iterator | 논문 §2.2, Table 3과 현재 upstream |
 | 4. 버전과 논리적 시간 | 같은 키의 여러 버전 중 무엇이 보이는가? | InternalKey, ValueType, Snapshot, read sequence, SuperVersion, 일반 Get과 Snapshot Get, Column Family와 인스턴스별 Sequence | 논문 §7.1과 현재 upstream |
@@ -83,6 +82,24 @@ On-disk format versioning과 compatibility는 『Database Internals』 3장의 �
 | 13. 논문 전체 완독과 종료 시험 | 빠뜨린 문맥 없이 전체 설계를 설명할 수 있는가? | §1부터 Related Work까지 완독, format compatibility·configuration·column support·failed initiatives 포함, 논문·현재 구현·일반 원리 분리, 생명주기와 다중 인스턴스 종료 시험 | 논문 전체 |
 
 핵심 원리를 먼저 완성한 뒤 13번에서 논문을 처음부터 끝까지 다시 읽는다. 이 단계에서는 핵심 선행학습에서 제외한 절도 생략하지 않되, 모든 주제를 동일한 깊이로 구현까지 추적하지 않는다.
+
+## 과정별 학습 기록
+
+아래에는 RocksDB 과정별 상태, 통과 기준, 학습자가 자기 언어로 작성한 최종 정리와 최종 평가만 기록한다.
+
+### 1. 책임과 데이터 모델
+
+- 상태: `학습 중`
+- 주 근거: 논문 §1, §2.1, §2.2, §4.2, §7과 현재 upstream 문서
+- 통과 기준:
+  - `embedded`, storage engine, single node의 의미와 RocksDB를 사용하는 전체 시스템의 경계를 설명한다.
+  - byte-array key-value 모델, comparator에 따른 키 순서, 데이터 해석과 인코딩의 애플리케이션 책임을 설명한다.
+  - 같은 DB의 Column Family가 공유하거나 독립적으로 가지는 것과 서로 다른 DB 인스턴스의 경계를 설명한다.
+  - secondary index와 constraint의 구체적인 예로 저장 원자성과 논리적 정합성의 책임을 구분한다.
+  - 복제와 백업은 상위 시스템 책임이지만 RocksDB가 구현 재료를 제공한다는 차이를 설명한다.
+- 내 언어로 정리: 통과 후 기록
+- 최종 평가: 검증 전
+- 통과 커밋: 없음
 
 ## 종료 시험
 
@@ -124,8 +141,3 @@ Put(v1)
 - on-disk format compatibility matrix와 migration tool 구현
 - RocksDB가 담당하지 않는 Raft, consensus, 분산 트랜잭션 coordinator의 구현
 - SuperVersion 클래스와 reference count 코드 암기
-
-## 다음 합의 항목
-
-1. 지금까지 학습한 내용
-2. 앞으로 학습할 내용과 순서
