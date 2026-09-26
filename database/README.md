@@ -22,7 +22,7 @@
 - RocksDB
 - Berkeley DB
 - InnoDB
-- PostgreSQL (`psql`은 PostgreSQL 클라이언트)
+- PostgreSQL
 - DynamoDB
 
 ### OLAP
