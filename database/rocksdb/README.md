@@ -2,6 +2,8 @@
 
 상위 학습 목표와 공통 원칙은 [`database/README.md`](../README.md)를 따른다.
 
+학습 상태는 상위 문서의 `학습과 통과 절차`에 따라 `미학습`, `학습 중`, `통과`로 판정한다. 이 문서에는 과정별 통과 기준, 상태와 통과 근거를 기록한다.
+
 RocksDB를 단일 노드에 내장되는 LSM 기반 ordered key-value storage engine으로 이해한다. 하나의 키와 트랜잭션이 쓰기 요청부터 가시성 결정, 탐색, Flush, Compaction, 삭제, 공간 회수, 장애 후 재시작까지 이동하는 전 생명주기를 추적하고, 각 단계가 만드는 보장과 비용을 예측할 수 있어야 한다.
 
 RocksDB만 고립해서 암기하지 않는다. 『Database Internals』에서 배운 파일 구조, 동시성 제어, 복구, 무결성, 자원 관리 원리를 RocksDB에 적용하고, 이후 Berkeley DB, InnoDB, PostgreSQL과 비교할 수 있는 기반을 만든다.
@@ -42,6 +44,45 @@ Column Family와 DB 인스턴스의 경계는 모든 단계에 걸쳐 다음과 
 Checksum은 RocksDB 핵심 완료 범위에 포함한다. 다만 checksum과 CRC의 구현 알고리즘, 모든 관련 옵션은 학습하지 않고 `durability와 integrity의 차이`, `탐지와 복구의 차이`, `검증 범위`까지만 배운다.
 
 On-disk format versioning과 compatibility는 『Database Internals』 3장의 일반 원리를 배운 뒤 RocksDB 논문 §4.4의 upgrade, rollback, file copy 사례로 연결한다. 이는 RocksDB 핵심 선행학습이나 별도 구현 심화 과정으로 두지 않는다.
+
+## 전체 학습 목차
+
+앞의 8개 완료 기준은 최종 이해를 평가하는 축이고, 아래 13개 과정은 그 목표에 도달하기 위한 학습 순서다. 한 인스턴스의 한 연산에서 시작해 동시 실행, 시간 경과, 장애, 호스트 자원 경쟁, 분산 시스템과의 경계 순으로 현실의 압력을 추가한다.
+
+### 1부: 한 인스턴스에서 읽고 쓰기
+
+| 순서 | 중심 질문 | 주요 내용 | 주 근거 |
+|---|---|---|---|
+| 1. 책임과 데이터 모델 | RocksDB는 무엇을 저장하며 무엇을 하지 않는가? | ordered byte-array KV, embedded library, DB·Column Family·인스턴스 경계, secondary index와 constraint의 애플리케이션 책임 | 논문 §1, §2.1, §2.2, §4.2 |
+| 2. 쓰기와 공개 | Put은 언제 기록되고 언제 독자에게 보이는가? | WriteBatch, Sequence 할당, WAL, MemTable, LastPublishedSequence, `sync`, no-WAL, acknowledgement | 논문 §2.2, §4.3과 현재 upstream |
+| 3. 물리적 탐색 | Get과 Iterator는 어디를 읽는가? | MemTable·immutable MemTable, SST data/index/filter block, block cache, Bloom filter, L0 중첩, L1+ 비중첩, point lookup과 merge iterator | 논문 §2.2, Table 3과 현재 upstream |
+| 4. 버전과 논리적 시간 | 같은 키의 여러 버전 중 무엇이 보이는가? | InternalKey, ValueType, Snapshot, read sequence, SuperVersion, 일반 Get과 Snapshot Get, Column Family와 인스턴스별 Sequence | 논문 §7.1과 현재 upstream |
+
+### 2부: 동시 실행과 시간 경과
+
+| 순서 | 중심 질문 | 주요 내용 | 주 근거 |
+|---|---|---|---|
+| 5. 원자성과 충돌 제어 | 여러 read-modify-write가 겹치면 어떻게 되는가? | WriteBatch atomicity와 isolation, lost update, `TransactionDB`, `OptimisticTransactionDB`, `GetForUpdate`, wait·timeout·abort·retry | 현재 upstream Transaction API |
+| 6. Compaction 정확성과 데이터 생명주기 | 물리 구조가 바뀌어도 왜 논리 결과가 유지되는가? | immutable MemTable, Flush, sorted-run merge, 새 Version 설치, Snapshot이 요구하는 과거 버전 보존, tombstone의 안전한 제거, SuperVersion과 obsolete file 회수 | 논문 §2.2, §6.3과 현재 upstream |
+| 7. Compaction 정책과 증폭 | 정확성을 지키는 정리 작업을 언제 얼마나 공격적으로 할 것인가? | Leveled·Tiered/Universal·FIFO, read/write/space amplification, tombstone의 scan·공간 비용, background I/O, backlog와 write stall | 논문 §2.2 Table 3, §3.1, §3.2, §6.3 |
+| 8. 애플리케이션의 Compaction 개입 | 애플리케이션이 정리 과정에 개입하면 무엇을 얻고 잃는가? | Merge Operator, Compaction Filter, TTL, MVCC garbage collection, deferred update 비용과 Snapshot 반복 읽기·원자성 약화 가능성 | 논문 §6.2와 현재 upstream |
+
+### 3부: 장애와 장기 운영
+
+| 순서 | 중심 질문 | 주요 내용 | 주 근거 |
+|---|---|---|---|
+| 9. 재시작과 데이터 무결성 | 프로세스가 죽거나 바이트가 손상되면 무엇이 다른가? | `CURRENT → MANIFEST → live SST → WAL replay`, process/power crash, durability와 integrity, block·file checksum, 탐지와 복구 | 논문 §5와 현재 upstream |
+| 10. 메모리와 호스트 자원 | 여러 인스턴스가 한 호스트에서 경쟁하면 어떻게 되는가? | MemTable/write buffer, block cache, allocator, compression·checksum CPU, compaction I/O·thread, disk, deletion rate, shared controller, backpressure | 논문 §4.1, §6.4 |
+| 11. 복사·복제·백업 경계 | RocksDB는 상위 분산 시스템에 무엇을 제공하는가? | Snapshot과 Checkpoint, logical/physical copy, live-file 고정, Backup Engine, replication order와 전역 시점의 상위 시스템 책임 | 논문 §4.2, §7.1 |
+
+### 4부: 설계 판단과 전체 회수
+
+| 순서 | 중심 질문 | 주요 내용 | 주 근거 |
+|---|---|---|---|
+| 12. RocksDB·LSM 적합성 | 어떤 워크로드에서 무엇을 얻고 잃는가? | point/range 비율, 쓰기량, value 크기, SSD·메모리·CPU, 큰 value 분리, LSM과 B+tree 비교, 측정 지표 | 논문 §3.3–§3.5와 『Database Internals』 |
+| 13. 논문 전체 완독과 종료 시험 | 빠뜨린 문맥 없이 전체 설계를 설명할 수 있는가? | §1부터 Related Work까지 완독, format compatibility·configuration·column support·failed initiatives 포함, 논문·현재 구현·일반 원리 분리, 생명주기와 다중 인스턴스 종료 시험 | 논문 전체 |
+
+핵심 원리를 먼저 완성한 뒤 13번에서 논문을 처음부터 끝까지 다시 읽는다. 이 단계에서는 핵심 선행학습에서 제외한 절도 생략하지 않되, 모든 주제를 동일한 깊이로 구현까지 추적하지 않는다.
 
 ## 종료 시험
 
@@ -86,6 +127,5 @@ Put(v1)
 
 ## 다음 합의 항목
 
-1. RocksDB 전체 학습 목차
-2. 지금까지 학습한 내용
-3. 앞으로 학습할 내용과 순서
+1. 지금까지 학습한 내용
+2. 앞으로 학습할 내용과 순서
