@@ -98,6 +98,7 @@ On-disk format versioning과 compatibility는 『Database Internals』 3장의 �
   - secondary index와 constraint의 구체적인 예로 저장 원자성과 논리적 정합성의 책임을 구분한다.
   - 복제와 백업은 상위 시스템 책임이지만 RocksDB가 구현 재료를 제공한다는 차이를 설명한다.
 - 내 언어로 정리: 통과 후 기록
+- 오답노트: 통과 후 필요한 내용만 기록
 - 최종 평가: 검증 전
 - 통과 커밋: 없음
 
