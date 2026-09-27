@@ -53,16 +53,16 @@ On-disk format versioning과 compatibility의 개념 및 RocksDB 논문 §4.4의
 
 | 순서 | 중심 질문 | 주요 내용 | 주 근거 |
 |---|---|---|---|
-| 1. 책임과 데이터 모델 | RocksDB는 무엇을 저장하며 무엇을 하지 않는가? | ordered byte-array KV, embedded library, DB·Column Family·인스턴스 경계, secondary index와 constraint의 애플리케이션 책임 | 논문 §1, §2.1, §2.2, §4.2, §7과 공식 Basic Operations·Column Families·Transactions·Prefix Seek 문서 |
-| 2. 쓰기와 공개 | Put은 언제 기록되고 언제 독자에게 보이는가? | WriteBatch, Sequence 할당, WAL, MemTable, LastPublishedSequence, `sync`, no-WAL, acknowledgement | 논문 §2.2, §4.3과 공식 Basic Operations·Write-Ahead Log 문서 |
-| 3. 물리적 탐색 | Get과 Iterator는 어디를 읽는가? | MemTable·immutable MemTable, SST data/index/filter block, block cache, Bloom filter, L0 중첩, L1+ 비중첩, point lookup과 merge iterator | 논문 §2.2, Table 3과 공식 Basic Operations·Iterator 문서 |
+| 1. 책임과 데이터 모델 | RocksDB는 어떤 형태의 데이터를 어떤 인스턴스 경계에서 저장하는가? | ordered byte-array KV, embedded single-node library, local SSD 중심의 설계 배경, DB·Column Family·인스턴스 경계 | 논문 §1, §2.1, §2.2, §7과 공식 Basic Operations·Column Families 문서 |
+| 2. 쓰기와 공개 | Put은 언제 기록되고 언제 독자에게 보이는가? | WriteBatch, 여러 KV와 Column Family의 원자적 변경, secondary index 쓰기 유지, Sequence 할당, WAL, MemTable, LastPublishedSequence, `sync`, no-WAL, acknowledgement | 논문 §2.2, §4.3과 공식 Basic Operations·Write-Ahead Log 문서 |
+| 3. 물리적 탐색 | Get과 Iterator는 어디를 읽는가? | MemTable·immutable MemTable, SST data/index/filter block, block cache, Bloom filter, L0 중첩, L1+ 비중첩, point lookup과 merge iterator, secondary index와 prefix scan | 논문 §2.2, Table 3과 공식 Basic Operations·Iterator·Prefix Seek 문서 |
 | 4. 버전과 논리적 시간 | 같은 키의 여러 버전 중 무엇이 보이는가? | InternalKey, ValueType, Snapshot, read sequence, SuperVersion, 일반 Get과 Snapshot Get, Column Family와 인스턴스별 Sequence | 논문 §7.1과 공식 Snapshot 문서 |
 
 ### 2부: 동시 실행과 시간 경과
 
 | 순서 | 중심 질문 | 주요 내용 | 주 근거 |
 |---|---|---|---|
-| 5. 원자성과 충돌 제어 | 여러 read-modify-write가 겹치면 어떻게 되는가? | WriteBatch atomicity와 isolation, lost update, `TransactionDB`, `OptimisticTransactionDB`, `GetForUpdate`, wait·timeout·abort·retry | 공식 Transactions 문서 |
+| 5. 원자성과 충돌 제어 | 여러 read-modify-write가 겹치면 어떻게 되는가? | WriteBatch atomicity와 isolation, lost update, `TransactionDB`, `OptimisticTransactionDB`, `GetForUpdate`, wait·timeout·abort·retry, `UNIQUE` 같은 논리적 제약조건 유지 | 공식 Transactions 문서 |
 | 6. Compaction 정확성과 데이터 생명주기 | 물리 구조가 바뀌어도 왜 논리 결과가 유지되는가? | immutable MemTable, Flush, sorted-run merge, 새 Version 설치, Snapshot이 요구하는 과거 버전 보존, tombstone의 안전한 제거, SuperVersion과 obsolete file 회수 | 논문 §2.2, §6.3과 공식 Compaction·Snapshot 문서 |
 | 7. Compaction 정책과 증폭 | 정확성을 지키는 정리 작업을 언제 얼마나 공격적으로 할 것인가? | Leveled·Tiered/Universal·FIFO, read/write/space amplification, tombstone의 scan·공간 비용, background I/O, backlog와 write stall | 논문 §2.2 Table 3, §3.1, §3.2, §6.3 |
 | 8. 애플리케이션의 Compaction 개입 | 애플리케이션이 정리 과정에 개입하면 무엇을 얻고 잃는가? | Merge Operator, Compaction Filter, TTL, MVCC garbage collection, deferred update 비용과 Snapshot 반복 읽기·원자성 약화 가능성 | 논문 §6.2와 공식 Merge Operator·Compaction Filter 문서 |
@@ -90,18 +90,24 @@ On-disk format versioning과 compatibility의 개념 및 RocksDB 논문 §4.4의
 
 ### 1. 책임과 데이터 모델
 
-- 상태: `학습 중`
-- 주 근거: 논문 §1, §2.1, §2.2, §4.2, §7과 공식 Basic Operations·Column Families·Transactions·Prefix Seek 문서
+- 상태: `통과`
+- 주 근거: 논문 §1, §2.1, §2.2, §7과 공식 Basic Operations·Column Families 문서
 - 통과 기준:
   - `embedded`, storage engine, single node의 의미와 RocksDB를 사용하는 전체 시스템의 경계를 설명한다.
+  - local SSD는 RocksDB의 설계 배경이지 single node를 결정하거나 실행 가능성을 제한하는 조건이 아님을 설명한다.
   - byte-array key-value 모델, comparator에 따른 키 순서, 데이터 해석과 인코딩의 애플리케이션 책임을 설명한다.
-  - 같은 DB의 Column Family가 공유하거나 독립적으로 가지는 것과 서로 다른 DB 인스턴스의 경계를 설명한다.
-  - secondary index와 constraint의 구체적인 예로 저장 원자성과 논리적 정합성의 책임을 구분한다.
-  - 복제와 백업은 상위 시스템 책임이지만 RocksDB가 구현 재료를 제공한다는 차이를 설명한다.
-- 내 언어로 정리: 통과 후 기록
-- 오답노트: 통과 후 필요한 내용만 기록
-- 최종 평가: 검증 전
-- 통과 커밋: 없음
+  - DB가 파일시스템 디렉터리에 대응하며 같은 호스트가 여러 독립 DB 인스턴스를 운영할 수 있음을 설명한다.
+  - Column Family가 한 DB 안의 독립적인 ordered KV key space와 물리적 LSM 구성 경계이며, 각자의 MemTable·SSTable을 가지고 WAL을 공유함을 설명한다.
+- 내 언어로 정리:
+  - RocksDB는 상위 애플리케이션에 내장되는 local key-value library다. 각 인스턴스는 단일 서버 노드의 데이터만 관리하고 다른 호스트의 RocksDB와 복제·로드밸런싱을 직접 수행하지 않는다. 분산 시스템은 여러 RocksDB 인스턴스에 데이터를 샤딩할 수 있지만, 이때 샤딩과 복제는 상위 시스템이 담당한다.
+  - RocksDB는 local SSD의 특성에 맞춰 시작하고 최적화됐지만 remote storage에서도 실행할 수 있다. Single node는 저장장치가 로컬인지가 아니라 인스턴스 하나가 담당하는 관리 범위를 가리킨다.
+  - Key와 value는 임의의 byte array이고 key는 comparator에 따라 정렬된다. 기본 comparator는 바이트 사전순이므로 원하는 순서를 얻기 위한 key 인코딩과 key·value의 해석은 애플리케이션 책임이다.
+  - DB 인스턴스는 파일시스템 디렉터리에 대응하므로 같은 호스트에서도 여러 DB 인스턴스를 운영할 수 있다. Column Family는 한 DB 안의 독립적인 ordered KV key space와 LSM 구성 경계다. 각 Column Family는 MemTable과 SSTable을 따로 가지고 같은 DB의 WAL을 공유한다.
+- 오답노트:
+  - 처음에는 local disk에 저장되기 때문에 single node라고 이해했다. 그러나 저장장치의 위치와 인스턴스의 관리 범위를 혼동한 설명이었다. Remote storage를 사용하더라도 각 RocksDB 인스턴스가 한 서버 노드의 DB 상태만 관리하고 inter-host 작업을 수행하지 않는다는 single-node 경계는 유지된다.
+  - 처음에는 Column Family를 RDB table과 같은 위계라고 이해했다. Column Family 자체는 schema나 row 의미를 제공하는 table이 아니라 독립적인 ordered KV key space와 LSM 구성 경계다. 애플리케이션이 하나의 CF를 table처럼 사용할 수는 있지만 이는 애플리케이션의 모델링 선택이다.
+- 최종 평가: 공식 원문 학습, 자기 언어의 재구성, single node와 storage 위치의 구분 및 Column Family 경계에 대한 오개념 교정을 완료해 통과했다. 아직 배우지 않은 Sequence Number·Snapshot이나 이후 과정의 secondary index·constraint·복제·백업 구현은 통과 기준에 포함하지 않았다.
+- 통과 커밋: 이 학습 기록을 포함한 커밋
 
 ## 종료 시험
 
