@@ -86,28 +86,15 @@ On-disk format versioning과 compatibility의 개념 및 RocksDB 논문 §4.4의
 
 ## 과정별 학습 기록
 
-아래에는 RocksDB 과정별 상태, 통과 기준, 학습자가 자기 언어로 작성한 최종 정리와 최종 평가만 기록한다.
+아래에는 RocksDB 과정별 상태, 학습 자료와 학습자 정리의 링크, 최종 평가를 기록한다.
 
 ### 1. 책임과 데이터 모델
 
 - 상태: `통과`
-- 주 근거: 논문 §1, §2.1, §2.2, §7과 공식 Basic Operations·Column Families 문서
-- 통과 기준:
-  - `embedded`, storage engine, single node의 의미와 RocksDB를 사용하는 전체 시스템의 경계를 설명한다.
-  - local SSD는 RocksDB의 설계 배경이지 single node를 결정하거나 실행 가능성을 제한하는 조건이 아님을 설명한다.
-  - byte-array key-value 모델, comparator에 따른 키 순서, 데이터 해석과 인코딩의 애플리케이션 책임을 설명한다.
-  - DB가 파일시스템 디렉터리에 대응하며 같은 호스트가 여러 독립 DB 인스턴스를 운영할 수 있음을 설명한다.
-  - Column Family가 한 DB 안의 독립적인 ordered KV key space와 물리적 LSM 구성 경계이며, 각자의 MemTable·SSTable을 가지고 WAL을 공유함을 설명한다.
-- 내 언어로 정리:
-  - RocksDB는 상위 애플리케이션에 내장되는 local key-value library다. 각 인스턴스는 단일 서버 노드의 데이터만 관리하고 다른 호스트의 RocksDB와 복제·로드밸런싱을 직접 수행하지 않는다. 분산 시스템은 여러 RocksDB 인스턴스에 데이터를 샤딩할 수 있지만, 이때 샤딩과 복제는 상위 시스템이 담당한다.
-  - RocksDB는 local SSD의 특성에 맞춰 시작하고 최적화됐지만 remote storage에서도 실행할 수 있다. Single node는 저장장치가 로컬인지가 아니라 인스턴스 하나가 담당하는 관리 범위를 가리킨다.
-  - Key와 value는 임의의 byte array이고 key는 comparator에 따라 정렬된다. 기본 comparator는 바이트 사전순이므로 원하는 순서를 얻기 위한 key 인코딩과 key·value의 해석은 애플리케이션 책임이다.
-  - DB 인스턴스는 파일시스템 디렉터리에 대응하므로 같은 호스트에서도 여러 DB 인스턴스를 운영할 수 있다. Column Family는 한 DB 안의 독립적인 ordered KV key space와 LSM 구성 경계다. 각 Column Family는 MemTable과 SSTable을 따로 가지고 같은 DB의 WAL을 공유한다.
-- 오답노트:
-  - 처음에는 local disk에 저장되기 때문에 single node라고 이해했다. 그러나 저장장치의 위치와 인스턴스의 관리 범위를 혼동한 설명이었다. Remote storage를 사용하더라도 각 RocksDB 인스턴스가 한 서버 노드의 DB 상태만 관리하고 inter-host 작업을 수행하지 않는다는 single-node 경계는 유지된다.
-  - 처음에는 Column Family를 RDB table과 같은 위계라고 이해했다. Column Family 자체는 schema나 row 의미를 제공하는 table이 아니라 독립적인 ordered KV key space와 LSM 구성 경계다. 애플리케이션이 하나의 CF를 table처럼 사용할 수는 있지만 이는 애플리케이션의 모델링 선택이다.
+- [AI가 제공한 학습 자료와 통과 기준](chapters/01-responsibility-and-data-model/lesson.md)
+- [학습자가 직접 작성한 정리](chapters/01-responsibility-and-data-model/learner-notes.md)
 - 최종 평가: 공식 원문 학습, 자기 언어의 재구성, single node와 storage 위치의 구분 및 Column Family 경계에 대한 오개념 교정을 완료해 통과했다. 아직 배우지 않은 Sequence Number·Snapshot이나 이후 과정의 secondary index·constraint·복제·백업 구현은 통과 기준에 포함하지 않았다.
-- 통과 커밋: 이 학습 기록을 포함한 커밋
+- 통과 커밋: `eabd4ee record-rocksdb-responsibility-data-model-learning`
 
 ## 종료 시험
 
