@@ -96,6 +96,15 @@ On-disk format versioning과 compatibility의 개념 및 RocksDB 논문 §4.4의
 - 최종 평가: 공식 원문 학습, 자기 언어의 재구성, single node와 storage 위치의 구분 및 Column Family 경계에 대한 오개념 교정을 완료해 통과했다. 아직 배우지 않은 Sequence Number·Snapshot이나 이후 과정의 secondary index·constraint·복제·백업 구현은 통과 기준에 포함하지 않았다.
 - 통과 커밋: `eabd4ee record-rocksdb-responsibility-data-model-learning`
 
+### 2. 쓰기와 공개
+
+- 상태: `통과`
+- [학습자가 직접 작성한 정리](chapters/02-write-publication/learner-notes.md)
+- [통과 기준별 최종 평가와 교정 기록](chapters/02-write-publication/evaluation.md)
+- 최종 평가: 여러 KV·Column Family의 원자적 변경, Sequence 할당과 publication의 안전 조건, WAL·MemTable의 역할, 세 WAL 모드의 장애별 내구성, 가시성과 내구성의 차이를 자기 언어로 설명해 통과했다. WriteBatch와 Transaction 용어의 혼동을 교정했으며, WriteGroup 내부 구현과 UNIQUE 사례의 문서 반복은 평가에서 제외했다.
+- 평가일: `2026-10-04`
+- 3장은 아직 시작하지 않았다.
+
 ## 종료 시험
 
 다음 흐름을 보고 논리 결과와 물리 상태를 함께 설명할 수 있어야 한다.
